@@ -39,3 +39,7 @@ end
 function Base.convert(::Type{String}, cf::CFProjection)
     return convert(String, convert(CoordinateOperations.ProjJSONCoordinateOperation, cf))
 end # this is the only usable form
+
+function GFT.ProjJSON(cf::CFProjection)
+    return convert(GFT.ProjJSON, cf)
+end
