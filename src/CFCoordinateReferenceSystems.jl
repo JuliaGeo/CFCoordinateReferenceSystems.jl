@@ -3,9 +3,9 @@ module CFCoordinateReferenceSystems
 import GeoFormatTypes as GFT
 
 include("coordinate_operations.jl")
-import .CoordinateOperations
-
 include("cf1x8.jl")
+
+import .CoordinateOperations
 import .CF1x8
 
 # Dictionary to map grid mapping names to their conversion functions

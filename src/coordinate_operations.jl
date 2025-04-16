@@ -3,6 +3,8 @@ This module defines coordinate operations for building CRS transformations.
 """
 module CoordinateOperations
 
+include("parameters.jl")
+
 using GeoFormatTypes
 
 import GeoFormatTypes as GFT, JSON3
@@ -77,30 +79,11 @@ function _albers_equal_area__to_projjson_dict(
             "id" => Dict("authority" => "EPSG", "code" => 9822)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of false origin",
-                "value" => latitude_false_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8821)
-            ),
-            Dict(
-                "name" => "Longitude of false origin",
-                "value" => longitude_false_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8822)
-            ),
-            Dict(
-                "name" => "Latitude of 1st standard parallel",
-                "value" => latitude_first_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8823)
-            ),
-            Dict(
-                "name" => "Latitude of 2nd standard parallel",
-                "value" => latitude_second_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8824)
-            ),
+            _latitude_false_origin(latitude_false_origin),
+            _longitude_false_origin(longitude_false_origin),
+            _latitude_1st_standard_parallel(latitude_first_parallel),
+            _latitude_2nd_standard_parallel(latitude_second_parallel),
+            # TODO: why do these have Dict units? above its just "metre"
             Dict(
                 "name" => "Easting at false origin",
                 "value" => easting_false_origin,
@@ -120,7 +103,9 @@ function _albers_equal_area__to_projjson_dict(
                     "conversion_factor" => 1
                 ),
                 "id" => Dict("authority" => "EPSG", "code" => 8827)
-            )
+            ),
+            _easting_false_origin(easting_false_origin),
+            _northing_false_origin(northing_false_origin),
         ]
     )
     return ProjJSONDict(params)
@@ -141,30 +126,10 @@ function _azimuthal_equidistant__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9832)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -198,30 +163,10 @@ function _geostationary_satellite__to_projjson_dict(
                 "value" => satellite_height,
                 "unit" => "metre"
             ),
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -242,30 +187,10 @@ function _lambert_azimuthal_equal_area__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9820)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -288,42 +213,12 @@ function _lambert_conformal_conic_2sp__to_projjson_dict(
             "id" => Dict("authority" => "EPSG", "code" => 9802)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of 1st standard parallel",
-                "value" => latitude_first_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8823)
-            ),
-            Dict(
-                "name" => "Latitude of 2nd standard parallel",
-                "value" => latitude_second_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8824)
-            ),
-            Dict(
-                "name" => "Latitude of false origin",
-                "value" => latitude_false_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8821)
-            ),
-            Dict(
-                "name" => "Longitude of false origin",
-                "value" => longitude_false_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8822)
-            ),
-            Dict(
-                "name" => "Easting at false origin",
-                "value" => easting_false_origin,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8826)
-            ),
-            Dict(
-                "name" => "Northing at false origin",
-                "value" => northing_false_origin,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8827)
-            )
+            _latitude_1st_standard_parallel(latitude_first_parallel),
+            _latitude_2nd_standard_parallel(latitude_second_parallel),
+            _latitude_false_origin(latitude_false_origin),
+            _longitude_false_origin(longitude_false_origin),
+            _easting_false_origin(easting_false_origin),
+            _northing_false_origin(northing_false_origin),
         ]
     )
     return ProjJSONDict(params)
@@ -345,36 +240,11 @@ function _lambert_convermal_conic_1sp__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9801)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -395,30 +265,10 @@ function _lambert_cylindrical_equal_area__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9835)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of 1st standard parallel",
-                "value" => latitude_first_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8823)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_1st_standard_parallel(latitude_first_parallel),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -439,30 +289,10 @@ function _lambert_cylindrical_equal_area_scale__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9835)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            )
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
         ]
     )
     return ProjJSONDict(params)
@@ -488,36 +318,11 @@ function _mercator_a__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9804)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -538,30 +343,10 @@ function _mercator_b__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9805)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of 1st standard parallel",
-                "value" => latitude_first_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8823)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_1st_standard_parallel(latitude_first_parallel),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -608,48 +393,13 @@ function _hotine_oblique_mercator_b__to_projjson_dict(
             "id" => Dict("authority" => "EPSG", "code" => 9815)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of projection centre",
-                "value" => latitude_projection_centre,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8811)
-            ),
-            Dict(
-                "name" => "Longitude of projection centre",
-                "value" => longitude_projection_centre,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8812)
-            ),
-            Dict(
-                "name" => "Azimuth at projection centre",
-                "value" => azimuth_projection_centre,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8813)
-            ),
-            Dict(
-                "name" => "Angle from Rectified to Skew Grid",
-                "value" => angle_from_rectified_to_skew_grid,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8814)
-            ),
-            Dict(
-                "name" => "Scale factor at projection centre",
-                "value" => scale_factor_projection_centre,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8815)
-            ),
-            Dict(
-                "name" => "Easting at projection centre",
-                "value" => easting_projection_centre,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8816)
-            ),
-            Dict(
-                "name" => "Northing at projection centre",
-                "value" => northing_projection_centre,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8817)
-            )
+            _latitude_projection_centre(latitude_projection_centre),
+            _longitude_projection_centre(longitude_projection_centre),
+            _azimuth_projection_centre(azimuth_projection_centre),
+            _angle_from_rectified_to_skew_grid(angle_from_rectified_to_skew_grid),
+            _scale_factor_projection_centre(scale_factor_projection_centre),
+            _easting_projection_centre(easting_projection_centre),
+            _northing_projection_centre(northing_projection_centre),
         ]
     )
     return ProjJSONDict(params)
@@ -670,30 +420,10 @@ function _orthographic__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9840)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -719,36 +449,11 @@ function _polar_stereographic_a__to_projjson_dict(
             "id" => Dict("authority" => "EPSG", "code" => 9810)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -769,30 +474,10 @@ function _polar_stereographic_b__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9829)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of standard parallel",
-                "value" => latitude_standard_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8832)
-            ),
-            Dict(
-                "name" => "Longitude of origin",
-                "value" => longitude_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8833)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_standard_paralel(latitude_standard_parallel),
+            _longitude_origin(longitude_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -809,24 +494,9 @@ function _sinosoidal__to_projjson_dict(;
         "name" => "unknown",
         "method" => Dict("name" => "Sinusoidal"),
         "parameters" => [
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -845,36 +515,11 @@ function _stereographic__to_projjson_dict(;
         "name" => "unknown",
         "method" => Dict("name" => "Stereographic"),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -898,36 +543,11 @@ function _utm__to_projjson_dict(zone::Integer, hemisphere::String = "N")
             "id" => Dict("authority" => "EPSG", "code" => 9807)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => 0.0,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => (zone * 6 - 183),
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => 0.9996,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => 500000.0,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => hemisphere == "N" ? 0.0 : 10000000.0,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(0.0),
+            _longitude_natural_origin((zone * 6 - 183)),
+            _scale_factor_natural_origin(0.9996),
+            _false_easting(500000.0),
+            _false_northing(hemisphere == "N" ? 0.0 : 10000000.0),
         ]
     )
     return ProjJSONDict(params)
@@ -949,36 +569,11 @@ function _transverse_mercator__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 9807)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "Scale factor at natural origin",
-                "value" => scale_factor_natural_origin,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8805)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _scale_factor_natural_origin(scale_factor_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -1000,36 +595,11 @@ function _vertical_perspective__to_projjson_dict(
             "id" => Dict("authority" => "EPSG", "code" => 9838)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Viewpoint height",
-                "value" => viewpoint_height,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8840)
-            ),
-            Dict(
-                "name" => "Latitude of topocentric origin",
-                "value" => latitude_topocentric_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8834)
-            ),
-            Dict(
-                "name" => "Longitude of topocentric origin",
-                "value" => longitude_topocentric_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8835)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _viewpoint_height(viewpoint_height),
+            _latitude_topocentric_origin(latitude_topocentric_origin),
+            _longitude_topocentric_origin(longitude_topocentric_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
@@ -1054,47 +624,16 @@ function _web_mercator__to_projjson_dict(;
             "id" => Dict("authority" => "EPSG", "code" => 1024)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return ProjJSONDict(params)
 end
 
 #=
-"""
-    CassiniSoldnerConversion
-
-Cassini-Soldner Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-struct CassiniSoldnerConversion <: ProjJSONCoordinateOperation
-    params::AbstractDict
-end
 
 function CassiniSoldnerConversion(;
     latitude_natural_origin::Real = 0.0,
@@ -1111,45 +650,13 @@ function CassiniSoldnerConversion(;
             "id" => Dict("authority" => "EPSG", "code" => 9806)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of natural origin",
-                "value" => latitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8801)
-            ),
-            Dict(
-                "name" => "Longitude of natural origin",
-                "value" => longitude_natural_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8802)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_natural_origin(latitude_natural_origin),
+            _longitude_natural_origin(longitude_natural_origin),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return CassiniSoldnerConversion(params)
-end
-
-"""
-    KrovakConversion
-
-Krovak Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-struct KrovakConversion <: ProjJSONCoordinateOperation
-    params::AbstractDict
 end
 
 function KrovakConversion(;
@@ -1170,48 +677,13 @@ function KrovakConversion(;
             "id" => Dict("authority" => "EPSG", "code" => 9819)
         ),
         "parameters" => [
-            Dict(
-                "name" => "Latitude of projection centre",
-                "value" => latitude_projection_centre,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8811)
-            ),
-            Dict(
-                "name" => "Longitude of origin",
-                "value" => longitude_origin,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8833)
-            ),
-            Dict(
-                "name" => "Co-latitude of cone axis",
-                "value" => colatitude_cone_axis,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 1036)
-            ),
-            Dict(
-                "name" => "Latitude of pseudo standard parallel",
-                "value" => latitude_pseudo_standard_parallel,
-                "unit" => "degree",
-                "id" => Dict("authority" => "EPSG", "code" => 8818)
-            ),
-            Dict(
-                "name" => "Scale factor on pseudo standard parallel",
-                "value" => scale_factor_pseudo_standard_parallel,
-                "unit" => "unity",
-                "id" => Dict("authority" => "EPSG", "code" => 8819)
-            ),
-            Dict(
-                "name" => "False easting",
-                "value" => false_easting,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8806)
-            ),
-            Dict(
-                "name" => "False northing",
-                "value" => false_northing,
-                "unit" => "metre",
-                "id" => Dict("authority" => "EPSG", "code" => 8807)
-            )
+            _latitude_projection_centre(latitude_projection_centre),
+            _longitude_oriding(longitude_oriding),
+            _colatitude_cone_axis(colatitude_cone_axis), 
+            _latitude_pseudo_standard_parallel(latitude_pseudo_standard_parallel),
+            _scale_factor_pseudo_standard_parallel(scale_factor_pseudo_standard_parallel),
+            _false_easting(false_easting),
+            _false_northing(false_northing),
         ]
     )
     return KrovakConversion(params)
