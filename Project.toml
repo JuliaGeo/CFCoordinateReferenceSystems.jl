@@ -9,7 +9,7 @@ JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 
 [compat]
 Aqua = "0.8"
-ArchGDAL = "0.9. 0.10"
+ArchGDAL = "0.9, 0.10"
 GeoFormatTypes = "0.4"
 JET = "0.9"
 JSON3 = "1"
