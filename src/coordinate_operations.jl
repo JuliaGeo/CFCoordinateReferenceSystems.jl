@@ -3,62 +3,64 @@ This module defines coordinate operations for building CRS transformations.
 """
 module CoordinateOperations
 
-export ProjJSONCoordinateOperation,
-       AlbersEqualAreaConversion,
-       AzimuthalEquidistantConversion,
-       GeostationarySatelliteConversion,
-       LambertAzimuthalEqualAreaConversion,
-       LambertConformalConic2SPConversion,
-       LambertConformalConic1SPConversion,
-       LambertCylindricalEqualAreaConversion,
-       LambertCylindricalEqualAreaScaleConversion,
-       MercatorAConversion,
-       MercatorBConversion,
-       HotineObliqueMercatorBConversion,
-       OrthographicConversion,
-       PolarStereographicAConversion,
-       PolarStereographicBConversion,
-       SinusoidalConversion,
-       StereographicConversion,
-       UTMConversion,
-       TransverseMercatorConversion,
-       VerticalPerspectiveConversion,
-       WebMercatorConversion
+using GeoFormatTypes
 
 import GeoFormatTypes as GFT, JSON3
 
-struct ProjJSONCoordinateOperation{D<:AbstractDict{<:String,<:Any}} <: GFT.CoordinateReferenceSystemFormat
+export ProjJSONDict,
+    _albers_equal_area__to_projjson_dict,
+    _azimuthal_equidistant__to_projjson_dict,
+    _geostationary_satellite__to_projjson_dict,
+    _lambert_azimuthal_equal_area__to_projjson_dict,
+    _lambert_conformal_conic_2sp__to_projjson_dict,
+    _lambert_conformal_conic_1sp__to_projjson_dict,
+    _lambert_cylindrical_equal_area__to_projjson_dict,
+    _lambert_cylindrical_equal_area_scale__to_projjson_dict,
+    _mercator_a__to_projjson_dict,
+    _mercator_b__to_projjson_dict,
+    _hotine_oblique_mercator_b__to_projjson_dict,
+    _orthographic__to_projjson_dict,
+    _polar_stereographic_a__to_projjson_dict,
+    _polar_stereographic_b__to_projjson_dict,
+    _sinusoidal__to_projjson_dict,
+    _stereographic__to_projjson_dict,
+    _utm__to_projjson_dict,
+    _transverse_mercator__to_projjson_dict,
+    _vertical_perspective__to_projjson_dict,
+    _web_mercator__to_projjson_dict
+
+struct ProjJSONDict{D<:AbstractDict{<:String,<:Any}} <: GFT.CoordinateReferenceSystemFormat
     params::D
 end
 
 # We write the operation Dict to JSON to convert it to ProjJSON
-GFT.ProjJSON(operation::ProjJSONCoordinateOperation) = 
+GFT.ProjJSON(operation::ProjJSONDict) = 
     GFT.ProjJSON(JSON3.write(operation.params))
 
 # We can convert directly to ProjJSON here
-Base.convert(::Type{<:GFT.ProjJSON}, operation::ProjJSONCoordinateOperation) = 
+Base.convert(::Type{<:GFT.ProjJSON}, operation::ProjJSONDict) = 
     GFT.ProjJSON(operation)
 # Or to String via ProjJSON
-Base.convert(::Type{<:String}, operation::ProjJSONCoordinateOperation) = 
+Base.convert(::Type{<:String}, operation::ProjJSONDict) = 
     convert(String, convert(GFT.ProjJSON, operation))
 # We need external help to convert to other formats, 
 # so we convert to ProjJSON first and call convert again
-Base.convert(T::Type{<:GFT.GeoFormat}, operation::ProjJSONCoordinateOperation) = 
+Base.convert(T::Type{<:GFT.GeoFormat}, operation::ProjJSONDict) = 
     convert(T, convert(GFT.ProjJSON, operation))
 
-function Base.show(io::IO, ::MIME"text/plain", operation::T) where T <: ProjJSONCoordinateOperation
+function Base.show(io::IO, ::MIME"text/plain", operation::T) where T <: ProjJSONDict
     println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
     for (key, value) in operation.params
         println(io, "$key: $value")
     end
 end
-function Base.show(io::IO, operation::T) where T <: ProjJSONCoordinateOperation
+function Base.show(io::IO, operation::T) where T <: ProjJSONDict
     println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
 end
 
 # Begin conversion definitions
 
-function AlbersEqualAreaConversion(
+function _albers_equal_area__to_projjson_dict(
     latitude_first_parallel::Real,
     latitude_second_parallel::Real;
     latitude_false_origin::Real = 0.0,
@@ -121,18 +123,10 @@ function AlbersEqualAreaConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    AzimuthalEquidistantConversion
-
-Azimuthal Equidistant Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function AzimuthalEquidistantConversion(;
+function _azimuthal_equidistant__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -173,10 +167,10 @@ function AzimuthalEquidistantConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-function GeostationarySatelliteConversion(
+function _geostationary_satellite__to_projjson_dict(
     sweep_angle_axis::String,
     satellite_height::Real;
     latitude_natural_origin::Real = 0.0,
@@ -230,18 +224,10 @@ function GeostationarySatelliteConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    LambertAzimuthalEqualAreaConversion
-
-Lambert Azimuthal Equal Area Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function LambertAzimuthalEqualAreaConversion(;
+function _lambert_azimuthal_equal_area__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -282,18 +268,10 @@ function LambertAzimuthalEqualAreaConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    LambertConformalConic2SPConversion
-
-Lambert Conformal Conic 2SP Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function LambertConformalConic2SPConversion(
+function _lambert_conformal_conic_2sp__to_projjson_dict(
     latitude_first_parallel::Real,
     latitude_second_parallel::Real;
     latitude_false_origin::Real = 0.0,
@@ -348,18 +326,10 @@ function LambertConformalConic2SPConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    LambertConformalConic1SPConversion
-
-Lambert Conformal Conic 1SP Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function LambertConformalConic1SPConversion(;
+function _lambert_convermal_conic_1sp__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -407,18 +377,10 @@ function LambertConformalConic1SPConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    LambertCylindricalEqualAreaConversion
-
-Lambert Cylindrical Equal Area Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function LambertCylindricalEqualAreaConversion(;
+function _lambert_cylindrical_equal_area__to_projjson_dict(;
     latitude_first_parallel::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -459,18 +421,10 @@ function LambertCylindricalEqualAreaConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    LambertCylindricalEqualAreaScaleConversion
-
-Lambert Cylindrical Equal Area Conversion with scale factor.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function LambertCylindricalEqualAreaScaleConversion(;
+function _lambert_cylindrical_equal_area_scale__to_projjson_dict(;
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
@@ -511,18 +465,10 @@ function LambertCylindricalEqualAreaScaleConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    MercatorAConversion
-
-Mercator (variant A) Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function MercatorAConversion(;
+function _mercator_a__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -574,18 +520,10 @@ function MercatorAConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    MercatorBConversion
-
-Mercator (variant B) Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function MercatorBConversion(;
+function _mercator_b__to_projjson_dict(;
     latitude_first_parallel::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -626,18 +564,10 @@ function MercatorBConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    HotineObliqueMercatorBConversion
-
-Hotine Oblique Mercator (variant B) Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function HotineObliqueMercatorBConversion(
+function _hotine_oblique_mercator_b__to_projjson_dict(
     latitude_projection_centre::Real,
     longitude_projection_centre::Real,
     angle_from_rectified_to_skew_grid::Real;
@@ -722,18 +652,10 @@ function HotineObliqueMercatorBConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    OrthographicConversion
-
-Orthographic Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function OrthographicConversion(;
+function _orthographic__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -774,18 +696,10 @@ function OrthographicConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    PolarStereographicAConversion
-
-Polar Stereographic A Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function PolarStereographicAConversion(
+function _polar_stereographic_a__to_projjson_dict(
     latitude_natural_origin::Real;
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -837,18 +751,10 @@ function PolarStereographicAConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    PolarStereographicBConversion
-
-Polar Stereographic B Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function PolarStereographicBConversion(;
+function _polar_stereographic_b__to_projjson_dict(;
     latitude_standard_parallel::Real = 0.0,
     longitude_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -889,18 +795,10 @@ function PolarStereographicBConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    SinusoidalConversion
-
-Sinusoidal Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function SinusoidalConversion(;
+function _sinosoidal__to_projjson_dict(;
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
@@ -931,18 +829,10 @@ function SinusoidalConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    StereographicConversion
-
-Stereographic Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function StereographicConversion(;
+function _stereographic__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -987,18 +877,10 @@ function StereographicConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    UTMConversion
-
-UTM Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function UTMConversion(zone::Integer, hemisphere::String = "N")
+function _utm__to_projjson_dict(zone::Integer, hemisphere::String = "N")
     if !(1 <= zone <= 60)
         throw(ArgumentError("zone must be between 1 and 60"))
     end
@@ -1048,18 +930,10 @@ function UTMConversion(zone::Integer, hemisphere::String = "N")
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    TransverseMercatorConversion
-
-Transverse Mercator Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function TransverseMercatorConversion(;
+function _transverse_mercator__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -1107,18 +981,10 @@ function TransverseMercatorConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    VerticalPerspectiveConversion
-
-Vertical Perspective Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function VerticalPerspectiveConversion(
+function _vertical_perspective__to_projjson_dict(
     viewpoint_height::Real;
     latitude_topocentric_origin::Real = 0.0,
     longitude_topocentric_origin::Real = 0.0,
@@ -1166,18 +1032,10 @@ function VerticalPerspectiveConversion(
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
-"""
-    WebMercatorConversion
-
-Web Mercator Conversion coordinate operation.
-
-# Fields
-- `params::AbstractDict`: Dictionary of parameters for the conversion
-"""
-function WebMercatorConversion(;
+function _web_mercator__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -1222,7 +1080,7 @@ function WebMercatorConversion(;
             )
         ]
     )
-    return ProjJSONCoordinateOperation(params)
+    return ProjJSONDict(params)
 end
 
 #=

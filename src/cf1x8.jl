@@ -45,7 +45,6 @@ export _albers_conical_equal_area__to_cf,
        _rotated_latitude_longitude__to_cf,
        _pole_rotation_netcdf__to_cf
 
-
 function _get_standard_parallels(standard_parallel::String)
     val_split = split(input_str, ",")
     if length(val_split) > 1
@@ -138,7 +137,7 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
 function _albers_conical_equal_area(cf_params)
     first_parallel, second_parallel = _get_standard_parallels(cf_params["standard_parallel"])
-    return AlbersEqualAreaConversion(
+    return _albers_equal_area__to_projjson_dict(
         latitude_first_parallel=first_parallel,
         latitude_second_parallel=isnothing(second_parallel) ? 0.0 : second_parallel,
         latitude_false_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -150,7 +149,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
 function _azimuthal_equidistant(cf_params)
-    return AzimuthalEquidistantConversion(
+    return _azimuthal_equidistant__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -168,7 +167,7 @@ function _geostationary(cf_params)
         end
         sweep_angle_axis = Dict("x" => "y", "y" => "x")[lowercase(cf_params["fixed_angle_axis"])]
     end
-    return GeostationarySatelliteConversion(
+    return _geostationary_satellite__to_projjson_dict(
         sweep_angle_axis=sweep_angle_axis,
         satellite_height=cf_params["perspective_point_height"],
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -180,7 +179,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
 function _lambert_azimuthal_equal_area(cf_params)
-    return LambertAzimuthalEqualAreaConversion(
+    return _lambert_azimuthal_equal_area__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -192,7 +191,7 @@ end
 function _lambert_conformal_conic(cf_params)
     first_parallel, second_parallel = _get_standard_parallels(cf_params["standard_parallel"])
     if !isnothing(second_parallel)
-        return LambertConformalConic2SPConversion(
+        return _lambert_conformal_conic_2sp__to_projjson_dict(
             latitude_first_parallel=first_parallel,
             latitude_second_parallel=second_parallel,
             latitude_false_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -201,7 +200,7 @@ function _lambert_conformal_conic(cf_params)
             northing_false_origin=get(cf_params, "false_northing", 0.0)
         )
     end
-    return LambertConformalConic1SPConversion(
+    return _lambert_conformal_conic_1sp__to_projjson_dict(
         latitude_natural_origin=first_parallel,
         longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -212,14 +211,14 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
 function _lambert_cylindrical_equal_area(cf_params)
     if haskey(cf_params, "scale_factor_at_projection_origin")
-        return LambertCylindricalEqualAreaScaleConversion(
+        return _lambert_cylindrical_equal_area_scale__to_projjson_dict(
             scale_factor_natural_origin=cf_params["scale_factor_at_projection_origin"],
             longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0)
         )
     end
-    return LambertCylindricalEqualAreaConversion(
+    return _lambert_cylindrical_equal_area__to_projjson_dict(
         latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -230,7 +229,7 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
 function _mercator(cf_params)
     if haskey(cf_params, "scale_factor_at_projection_origin")
-        return MercatorAConversion(
+        return _mercator_a__to_projjson_dict(
             latitude_natural_origin=get(cf_params, "standard_parallel", 0.0),
             longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
             false_easting=get(cf_params, "false_easting", 0.0),
@@ -238,7 +237,7 @@ function _mercator(cf_params)
             scale_factor_natural_origin=cf_params["scale_factor_at_projection_origin"]
         )
     end
-    return MercatorBConversion(
+    return _mercator_b__to_projjson_dict(
         latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -248,7 +247,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
 function _oblique_mercator(cf_params)
-    return HotineObliqueMercatorBConversion(
+    return hotine_oblique_mercator_b__to_projjson_dict(
         latitude_projection_centre=cf_params["latitude_of_projection_origin"],
         longitude_projection_centre=cf_params["longitude_of_projection_origin"],
         azimuth_projection_centre=cf_params["azimuth_of_central_line"],
@@ -261,7 +260,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
 function _orthographic(cf_params)
-    return OrthographicConversion(
+    return _orthographic__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -272,14 +271,14 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
 function _polar_stereographic(cf_params)
     if haskey(cf_params, "standard_parallel")
-        return PolarStereographicBConversion(
+        return _polar_stereographic_b__to_projjson_dict(
             latitude_standard_parallel=cf_params["standard_parallel"],
             longitude_origin=cf_params["straight_vertical_longitude_from_pole"],
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0)
         )
     else
-        return PolarStereographicAConversion(
+        return _polar_stereographic_b__to_projjson_dict(
             latitude_natural_origin=cf_params["latitude_of_projection_origin"],
             longitude_natural_origin=cf_params["straight_vertical_longitude_from_pole"],
             false_easting=get(cf_params, "false_easting", 0.0),
@@ -291,7 +290,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
 function _sinusoidal(cf_params)
-    return SinusoidalConversion(
+    return _sinusoidal__to_projjson_dict(
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
         false_northing=get(cf_params, "false_northing", 0.0)
@@ -300,7 +299,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
 function _stereographic(cf_params)
-    return StereographicConversion(
+    return _stereographic__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -311,7 +310,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
 function _transverse_mercator(cf_params)
-    return TransverseMercatorConversion(
+    return _transverse_mercator__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -322,7 +321,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
 function _vertical_perspective(cf_params)
-    return VerticalPerspectiveConversion(
+    return _vertical_perspective__to_projjson_dict(
         viewpoint_height=cf_params["perspective_point_height"],
         latitude_topocentric_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_topocentric_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
@@ -333,6 +332,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
 function _rotated_latitude_longitude(cf_params)
+    # TODO where is this
     return PoleRotationNetCDFCFConversion(
         grid_north_pole_latitude=cf_params["grid_north_pole_latitude"],
         grid_north_pole_longitude=cf_params["grid_north_pole_longitude"],
@@ -342,7 +342,7 @@ end
 
 # Inverse mapping functions
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
-function _albers_conical_equal_area__to_cf(conversion)
+function _albers_conical_equal_area__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "albers_conical_equal_area",
@@ -358,7 +358,7 @@ function _albers_conical_equal_area__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
-function _azimuthal_equidistant__to_cf(conversion)
+function _azimuthal_equidistant__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "azimuthal_equidistant",
@@ -370,7 +370,7 @@ function _azimuthal_equidistant__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
-function _geostationary__to_cf(conversion)
+function _geostationary__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     sweep_angle_axis = "y"
     if endswith(lowercase(conversion.method_name), "(sweep_x)")
@@ -388,7 +388,7 @@ function _geostationary__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
-function _lambert_azimuthal_equal_area__to_cf(conversion)
+function _lambert_azimuthal_equal_area__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "lambert_azimuthal_equal_area",
@@ -400,7 +400,7 @@ function _lambert_azimuthal_equal_area__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
-function _lambert_conformal_conic__to_cf(conversion)
+function _lambert_conformal_conic__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(2sp)")
         return Dict(
@@ -426,7 +426,7 @@ function _lambert_conformal_conic__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
-function _lambert_cylindrical_equal_area__to_cf(conversion)
+function _lambert_cylindrical_equal_area__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "lambert_cylindrical_equal_area",
@@ -438,7 +438,7 @@ function _lambert_cylindrical_equal_area__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
-function _mercator__to_cf(conversion)
+function _mercator__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant_a)")
         return Dict(
@@ -461,7 +461,7 @@ function _mercator__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
-function _oblique_mercator__to_cf(conversion)
+function _oblique_mercator__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     if params["angle_from_rectified_to_skew_grid"] != 0
         @warn "angle from rectified to skew grid parameter lost in conversion to CF"
@@ -494,7 +494,7 @@ function _oblique_mercator__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
-function _orthographic__to_cf(conversion)
+function _orthographic__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "orthographic",
@@ -506,7 +506,7 @@ function _orthographic__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
-function _polar_stereographic__to_cf(conversion)
+function _polar_stereographic__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant b)")
         return Dict(
@@ -529,7 +529,7 @@ function _polar_stereographic__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
-function _sinusoidal__to_cf(conversion)
+function _sinusoidal__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "sinusoidal",
@@ -540,7 +540,7 @@ function _sinusoidal__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
-function _stereographic__to_cf(conversion)
+function _stereographic__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "stereographic",
@@ -553,7 +553,7 @@ function _stereographic__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
-function _transverse_mercator__to_cf(conversion)
+function _transverse_mercator__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "transverse_mercator",
@@ -566,7 +566,7 @@ function _transverse_mercator__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
-function _vertical_perspective__to_cf(conversion)
+function _vertical_perspective__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "vertical_perspective",
@@ -579,7 +579,7 @@ function _vertical_perspective__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-function _rotated_latitude_longitude__to_cf(conversion)
+function _rotated_latitude_longitude__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "rotated_latitude_longitude",
@@ -590,7 +590,7 @@ function _rotated_latitude_longitude__to_cf(conversion)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-function _pole_rotation_netcdf__to_cf(conversion)
+function _pole_rotation_netcdf__to_cf(conversion::ProjJSONDict)
     params = _to_dict(conversion)
     return Dict(
         "grid_mapping_name" => "rotated_latitude_longitude",
