@@ -27,15 +27,24 @@ export ProjJSONCoordinateOperation,
 
 import GeoFormatTypes as GFT, JSON3
 
-struct ProjJSONCoordinateOperation{D <: AbstractDict{<: String, <: Any}} <: GFT.CoordinateReferenceSystemFormat
+struct ProjJSONCoordinateOperation{D<:AbstractDict{<:String,<:Any}} <: GFT.CoordinateReferenceSystemFormat
     params::D
 end
 
-GFT.ProjJSON(operation::ProjJSONCoordinateOperation) = GFT.ProjJSON(JSON3.write(operation.params))
+# We write the operation Dict to JSON to convert it to ProjJSON
+GFT.ProjJSON(operation::ProjJSONCoordinateOperation) = 
+    GFT.ProjJSON(JSON3.write(operation.params))
 
-Base.convert(::Type{<: GFT.ProjJSON}, operation::ProjJSONCoordinateOperation) = GFT.ProjJSON(operation)
-Base.convert(T::Type{<: GFT.GeoFormat}, operation::ProjJSONCoordinateOperation) = convert(T, GFT.ProjJSON(operation))
-Base.convert(::Type{<: String}, operation::ProjJSONCoordinateOperation) = JSON3.write(operation.params)
+# We can convert directly to ProjJSON here
+Base.convert(::Type{<:GFT.ProjJSON}, operation::ProjJSONCoordinateOperation) = 
+    GFT.ProjJSON(operation)
+# Or to String via ProjJSON
+Base.convert(::Type{<:String}, operation::ProjJSONCoordinateOperation) = 
+    convert(String, convert(GFT.ProjJSON, operation))
+# We need external help to convert to other formats, 
+# so we convert to ProjJSON first and call convert again
+Base.convert(T::Type{<:GFT.GeoFormat}, operation::ProjJSONCoordinateOperation) = 
+    convert(T, convert(GFT.ProjJSON, operation))
 
 function Base.show(io::IO, ::MIME"text/plain", operation::T) where T <: ProjJSONCoordinateOperation
     println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
@@ -43,13 +52,11 @@ function Base.show(io::IO, ::MIME"text/plain", operation::T) where T <: ProjJSON
         println(io, "$key: $value")
     end
 end
-
 function Base.show(io::IO, operation::T) where T <: ProjJSONCoordinateOperation
     println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
 end
 
 # Begin conversion definitions
-
 
 function AlbersEqualAreaConversion(
     latitude_first_parallel::Real,
