@@ -1,5 +1,5 @@
 """
-This module defines coordinate operations for building CRS transformations.
+This module defines ProjJSONDict and functions defining conversions.
 """
 module CoordinateOperations
 
@@ -62,9 +62,9 @@ end
 
 # Begin conversion definitions
 
-function _albers_equal_area__to_projjson_dict(
+function _albers_equal_area__to_projjson_dict(;
     latitude_first_parallel::Real,
-    latitude_second_parallel::Real;
+    latitude_second_parallel::Real,
     latitude_false_origin::Real = 0.0,
     longitude_false_origin::Real = 0.0,
     easting_false_origin::Real = 0.0,
@@ -83,7 +83,7 @@ function _albers_equal_area__to_projjson_dict(
             _longitude_false_origin(longitude_false_origin),
             _latitude_1st_standard_parallel(latitude_first_parallel),
             _latitude_2nd_standard_parallel(latitude_second_parallel),
-            # TODO: why do these have Dict units? above its just "metre"
+            # TODO: why do these have Dict units? elsewhere its just "metre"
             Dict(
                 "name" => "Easting at false origin",
                 "value" => easting_false_origin,
@@ -135,9 +135,9 @@ function _azimuthal_equidistant__to_projjson_dict(;
     return ProjJSONDict(params)
 end
 
-function _geostationary_satellite__to_projjson_dict(
+function _geostationary_satellite__to_projjson_dict(;
     sweep_angle_axis::String,
-    satellite_height::Real;
+    satellite_height::Real,
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -196,9 +196,9 @@ function _lambert_azimuthal_equal_area__to_projjson_dict(;
     return ProjJSONDict(params)
 end
 
-function _lambert_conformal_conic_2sp__to_projjson_dict(
+function _lambert_conformal_conic_2sp__to_projjson_dict(;
     latitude_first_parallel::Real,
-    latitude_second_parallel::Real;
+    latitude_second_parallel::Real,
     latitude_false_origin::Real = 0.0,
     longitude_false_origin::Real = 0.0,
     easting_false_origin::Real = 0.0,
@@ -352,10 +352,10 @@ function _mercator_b__to_projjson_dict(;
     return ProjJSONDict(params)
 end
 
-function _hotine_oblique_mercator_b__to_projjson_dict(
+function _hotine_oblique_mercator_b__to_projjson_dict(;
     latitude_projection_centre::Real,
     longitude_projection_centre::Real,
-    angle_from_rectified_to_skew_grid::Real;
+    angle_from_rectified_to_skew_grid::Real,
     easting_projection_centre::Real = 0.0,
     northing_projection_centre::Real = 0.0,
     azimuth_projection_centre::Real,
@@ -406,8 +406,8 @@ function _orthographic__to_projjson_dict(;
     return ProjJSONDict(params)
 end
 
-function _polar_stereographic_a__to_projjson_dict(
-    latitude_natural_origin::Real;
+function _polar_stereographic_a__to_projjson_dict(;
+    latitude_natural_origin::Real,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
@@ -556,8 +556,8 @@ function _transverse_mercator__to_projjson_dict(;
     return ProjJSONDict(params)
 end
 
-function _vertical_perspective__to_projjson_dict(
-    viewpoint_height::Real;
+function _vertical_perspective__to_projjson_dict(;
+    viewpoint_height::Real,
     latitude_topocentric_origin::Real = 0.0,
     longitude_topocentric_origin::Real = 0.0,
     false_easting::Real = 0.0,

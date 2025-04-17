@@ -1,7 +1,7 @@
 import GeoFormatTypes as GFT
 
 # Dictionary to map grid mapping names to their conversion functions
-const GRID_MAPPING_NAME_MAP = Dict{String, Function}(
+const GRID_MAPPING_NAME_MAP = Dict{String,Function}(
     "albers_conical_equal_area" => CF1x8._albers_conical_equal_area,
     "azimuthal_equidistant" => CF1x8._azimuthal_equidistant,
     "geostationary" => CF1x8._geostationary,
@@ -18,7 +18,7 @@ const GRID_MAPPING_NAME_MAP = Dict{String, Function}(
     "vertical_perspective" => CF1x8._vertical_perspective,
 )
 
-const GEOGRAPHIC_GRID_MAPPING_NAME_MAP = Dict{String, Function}(
+const GEOGRAPHIC_GRID_MAPPING_NAME_MAP = Dict{String,Function}(
     "rotated_latitude_longitude" => CF1x8._rotated_latitude_longitude
 )
 

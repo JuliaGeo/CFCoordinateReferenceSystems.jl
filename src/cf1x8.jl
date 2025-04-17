@@ -161,13 +161,10 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
 function _geostationary(cf_params)
-    try
-        sweep_angle_axis = cf_params["sweep_angle_axis"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        sweep_angle_axis = Dict("x" => "y", "y" => "x")[lowercase(cf_params["fixed_angle_axis"])]
+    sweep_angle_axis = if haskey(cf_params, "sweep_angle_axis")
+        cf_params["sweep_angle_axis"]
+    else
+        Dict("x" => "y", "y" => "x")[lowercase(cf_params["fixed_angle_axis"])]
     end
     return _geostationary_satellite__to_projjson_dict(
         sweep_angle_axis=sweep_angle_axis,
@@ -252,7 +249,7 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
 function _oblique_mercator(cf_params)
-    return hotine_oblique_mercator_b__to_projjson_dict(
+    return _hotine_oblique_mercator_b__to_projjson_dict(
         latitude_projection_centre=cf_params["latitude_of_projection_origin"],
         longitude_projection_centre=cf_params["longitude_of_projection_origin"],
         azimuth_projection_centre=cf_params["azimuth_of_central_line"],
@@ -283,7 +280,7 @@ function _polar_stereographic(cf_params)
             false_northing=get(cf_params, "false_northing", 0.0)
         )
     else
-        return _polar_stereographic_b__to_projjson_dict(
+        return _polar_stereographic_a__to_projjson_dict(
             latitude_natural_origin=cf_params["latitude_of_projection_origin"],
             longitude_natural_origin=cf_params["straight_vertical_longitude_from_pole"],
             false_easting=get(cf_params, "false_easting", 0.0),
@@ -471,21 +468,16 @@ function _oblique_mercator__to_cf(conversion::ProjJSONDict)
     if params["angle_from_rectified_to_skew_grid"] != 0
         @warn "angle from rectified to skew grid parameter lost in conversion to CF"
     end
-    try
-        azimuth_of_central_line = params["azimuth_of_initial_line"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        azimuth_of_central_line = params["azimuth_at_projection_centre"]
+    # Handle some deprecated parameter names
+    azimuth_of_central_line = if haskey(params, "azimuth_of_initial_line")
+        params["azimuth_of_initial_line"]
+    else
+        params["azimuth_at_projection_centre"]
     end
-    try
-        scale_factor_at_projection_origin = params["scale_factor_on_initial_line"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        scale_factor_at_projection_origin = params["scale_factor_at_projection_centre"]
+    scale_factor_at_projection_origin = if haskey(params, "scale_factor_on_initial_line")
+        params["scale_factor_on_initial_line"]
+    else
+        params["scale_factor_at_projection_centre"]
     end
     return Dict(
         "grid_mapping_name" => "oblique_mercator",
