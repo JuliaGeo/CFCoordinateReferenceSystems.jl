@@ -358,32 +358,9 @@ function _hotine_oblique_mercator_b__to_projjson_dict(
     angle_from_rectified_to_skew_grid::Real;
     easting_projection_centre::Real = 0.0,
     northing_projection_centre::Real = 0.0,
-    azimuth_projection_centre::Union{Real,Nothing} = nothing,
-    scale_factor_projection_centre::Union{Real,Nothing} = nothing,
-    azimuth_initial_line::Union{Real,Nothing} = nothing,
-    scale_factor_on_initial_line::Union{Real,Nothing} = nothing,
+    azimuth_projection_centre::Real,
+    scale_factor_projection_centre::Real = 1.0,
 )
-    if scale_factor_on_initial_line !== nothing
-        if scale_factor_projection_centre !== nothing
-            throw(ArgumentError("scale_factor_projection_centre and scale_factor_on_initial_line cannot be provided together."))
-        end
-        @warn "scale_factor_on_initial_line is deprecated. Use scale_factor_projection_centre instead."
-        scale_factor_projection_centre = scale_factor_on_initial_line
-    elseif scale_factor_projection_centre === nothing
-        scale_factor_projection_centre = 1.0
-    end
-
-    if azimuth_projection_centre === nothing && azimuth_initial_line === nothing
-        throw(ArgumentError("azimuth_projection_centre or azimuth_initial_line must be provided."))
-    end
-    if azimuth_initial_line !== nothing
-        if azimuth_projection_centre !== nothing
-            throw(ArgumentError("azimuth_projection_centre and azimuth_initial_line cannot be provided together."))
-        end
-        @warn "azimuth_initial_line is deprecated. Use azimuth_projection_centre instead."
-        azimuth_projection_centre = azimuth_initial_line
-    end
-
     params = Dict(
         "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
         "type" => "Conversion",
