@@ -56,7 +56,7 @@ function _get_standard_parallels(standard_parallel::String)
     end
 end
 
-function _get_standard_parallels(standard_parallels::Vector{<: Real})
+function _get_standard_parallels(standard_parallels::Vector{<:Real})
     p1, p2 = standard_parallels
     return Float64(p1), Float64(p2)
 end
@@ -124,14 +124,16 @@ function _horizontal_datum_from_params(cf_params)
     end
 
     # Step 3: build datum
-    if !isnothing(ellipsoid) || !isnothing(prime_meridian)
+    if isnothing(ellipsoid) && isnothing(prime_meridian)
+        return nothing
+    else
+        # TODO: where is CustomDatum
         return CustomDatum(
             name=isnothing(datum_name) ? "undefined" : datum_name,
             ellipsoid=isnothing(ellipsoid) ? "WGS 84" : ellipsoid,
             prime_meridian=isnothing(prime_meridian) ? "Greenwich" : prime_meridian
         )
     end
-    return nothing
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
@@ -190,7 +192,14 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
 function _lambert_conformal_conic(cf_params)
     first_parallel, second_parallel = _get_standard_parallels(cf_params["standard_parallel"])
-    if !isnothing(second_parallel)
+    if isnothing(second_parallel)
+        return _lambert_conformal_conic_1sp__to_projjson_dict(
+            latitude_natural_origin=first_parallel,
+            longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
+    else
         return _lambert_conformal_conic_2sp__to_projjson_dict(
             latitude_first_parallel=first_parallel,
             latitude_second_parallel=second_parallel,
@@ -200,12 +209,6 @@ function _lambert_conformal_conic(cf_params)
             northing_false_origin=get(cf_params, "false_northing", 0.0)
         )
     end
-    return _lambert_conformal_conic_1sp__to_projjson_dict(
-        latitude_natural_origin=first_parallel,
-        longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
@@ -217,13 +220,14 @@ function _lambert_cylindrical_equal_area(cf_params)
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0)
         )
+    else
+        return _lambert_cylindrical_equal_area__to_projjson_dict(
+            latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
+            longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
     end
-    return _lambert_cylindrical_equal_area__to_projjson_dict(
-        latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
-        longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
@@ -236,13 +240,14 @@ function _mercator(cf_params)
             false_northing=get(cf_params, "false_northing", 0.0),
             scale_factor_natural_origin=cf_params["scale_factor_at_projection_origin"]
         )
+    else
+        return _mercator_b__to_projjson_dict(
+            latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
+            longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
     end
-    return _mercator_b__to_projjson_dict(
-        latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
-        longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
