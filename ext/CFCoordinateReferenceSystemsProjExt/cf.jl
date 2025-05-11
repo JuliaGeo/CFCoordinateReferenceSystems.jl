@@ -263,7 +263,7 @@ end
 
 # Inverse mapping functions
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
-function _albers_conical_equal_area__to_cf(conversion::ProjJSONDict)
+function _albers_conical_equal_area__to_cf(conversion::OrderedDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "albers_conical_equal_area",
@@ -279,7 +279,7 @@ function _albers_conical_equal_area__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
-function _azimuthal_equidistant__to_cf(conversion::ProjJSONDict)
+function _azimuthal_equidistant__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "azimuthal_equidistant",
@@ -291,7 +291,7 @@ function _azimuthal_equidistant__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
-function _geostationary__to_cf(conversion::ProjJSONDict)
+function _geostationary__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     sweep_angle_axis = "y"
     if endswith(lowercase(conversion.method_name), "(sweep_x)")
@@ -309,7 +309,7 @@ function _geostationary__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
-function _lambert_azimuthal_equal_area__to_cf(conversion::ProjJSONDict)
+function _lambert_azimuthal_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "lambert_azimuthal_equal_area",
@@ -321,7 +321,7 @@ function _lambert_azimuthal_equal_area__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
-function _lambert_conformal_conic__to_cf(conversion::ProjJSONDict)
+function _lambert_conformal_conic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(2sp)")
         return InnerDict(
@@ -347,7 +347,7 @@ function _lambert_conformal_conic__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
-function _lambert_cylindrical_equal_area__to_cf(conversion::ProjJSONDict)
+function _lambert_cylindrical_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "lambert_cylindrical_equal_area",
@@ -359,7 +359,7 @@ function _lambert_cylindrical_equal_area__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
-function _mercator__to_cf(conversion::ProjJSONDict)
+function _mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant_a)")
         return InnerDict(
@@ -382,7 +382,7 @@ function _mercator__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
-function _oblique_mercator__to_cf(conversion::ProjJSONDict)
+function _oblique_mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if params["angle_from_rectified_to_skew_grid"] != 0
         @warn "angle from rectified to skew grid parameter lost in conversion to CF"
@@ -410,7 +410,7 @@ function _oblique_mercator__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
-function _orthographic__to_cf(conversion::ProjJSONDict)
+function _orthographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "orthographic",
@@ -422,7 +422,7 @@ function _orthographic__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
-function _polar_stereographic__to_cf(conversion::ProjJSONDict)
+function _polar_stereographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant b)")
         return InnerDict(
@@ -445,7 +445,7 @@ function _polar_stereographic__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
-function _sinusoidal__to_cf(conversion::ProjJSONDict)
+function _sinusoidal__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "sinusoidal",
@@ -456,7 +456,7 @@ function _sinusoidal__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
-function _stereographic__to_cf(conversion::ProjJSONDict)
+function _stereographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "stereographic",
@@ -469,7 +469,7 @@ function _stereographic__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
-function _transverse_mercator__to_cf(conversion::ProjJSONDict)
+function _transverse_mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "transverse_mercator",
@@ -482,7 +482,7 @@ function _transverse_mercator__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
-function _vertical_perspective__to_cf(conversion::ProjJSONDict)
+function _vertical_perspective__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "vertical_perspective",
@@ -495,7 +495,7 @@ function _vertical_perspective__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-function _rotated_latitude_longitude__to_cf(conversion::ProjJSONDict)
+function _rotated_latitude_longitude__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "rotated_latitude_longitude",
@@ -506,7 +506,7 @@ function _rotated_latitude_longitude__to_cf(conversion::ProjJSONDict)
 end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-function _pole_rotation_netcdf__to_cf(conversion::ProjJSONDict)
+function _pole_rotation_netcdf__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "rotated_latitude_longitude",

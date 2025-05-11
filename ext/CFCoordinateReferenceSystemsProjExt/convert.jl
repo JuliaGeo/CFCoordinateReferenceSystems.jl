@@ -27,7 +27,7 @@ function Base.convert(::Type{GFT.ProjJSON}, cf::CFProjection)
         else
             Proj.CRS(geographic_crs_name)
         end
-        return GFT.ProjJSON(JSON3.write(parent(geographic_crs)))
+        return GFT.ProjJSON(JSON3.write(geographic_crs))
     end
 
     grid_mapping_function = if haskey(GRID_MAPPING_NAME_MAP, grid_mapping_name)
@@ -41,7 +41,7 @@ function Base.convert(::Type{GFT.ProjJSON}, cf::CFProjection)
     if !isnothing(datum) 
         crs["datum"] = datum
     end
-    return GFT.ProjJSON(JSON3.write(parent(crs)))
+    return GFT.ProjJSON(JSON3.write(crs))
 end
 # convert to other GeoFormat or String via ProjJSON
 Base.convert(T::Type{<:GFT.GeoFormat}, cf::CFProjection) =
@@ -51,3 +51,9 @@ Base.convert(::Type{String}, cf::CFProjection) =
 
 GFT.ProjJSON(cf::CFProjection) = convert(GFT.ProjJSON, cf)
 GFT.ProjJSON(pjd::ProjJSONDict) = GFT.ProjJSON(JSON3.write(parent(pjd)))
+
+Base.convert(T::Type{<:CFProjection}, gf::Union{GFT.CoordinateReferenceSystemFormat,GFT.MixedFormat}) =
+    convert(T, convert(GFT.ProjJSON, gf))
+function Base.convert(T::Type{<:CFProjection}, pj::GFT.ProjJSON)
+    JSON3.read(pj.data, InnerDict)
+end
