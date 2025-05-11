@@ -2,12 +2,12 @@ module CFCoordinateReferenceSystems
 
 import GeoFormatTypes as GFT
 
-include("coordinate_operations.jl")
-include("cf1x8.jl")
+using OrderedCollections: OrderedDict
 
-import .CoordinateOperations
-import .CF1x8
+export CFProjection
 
+# We only need the wrapper type for normal use
+# the rest is loaded when Proj is loaded
 include("types.jl")
 
 end

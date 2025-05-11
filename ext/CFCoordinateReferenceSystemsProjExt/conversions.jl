@@ -1,66 +1,5 @@
-"""
-This module defines ProjJSONDict and functions defining conversions.
-"""
-module CoordinateOperations
-
-include("parameters.jl")
-
-using GeoFormatTypes
-
-import GeoFormatTypes as GFT, JSON3
-
-export ProjJSONDict,
-    _albers_equal_area__to_projjson_dict,
-    _azimuthal_equidistant__to_projjson_dict,
-    _geostationary_satellite__to_projjson_dict,
-    _lambert_azimuthal_equal_area__to_projjson_dict,
-    _lambert_conformal_conic_2sp__to_projjson_dict,
-    _lambert_conformal_conic_1sp__to_projjson_dict,
-    _lambert_cylindrical_equal_area__to_projjson_dict,
-    _lambert_cylindrical_equal_area_scale__to_projjson_dict,
-    _mercator_a__to_projjson_dict,
-    _mercator_b__to_projjson_dict,
-    _hotine_oblique_mercator_b__to_projjson_dict,
-    _orthographic__to_projjson_dict,
-    _polar_stereographic_a__to_projjson_dict,
-    _polar_stereographic_b__to_projjson_dict,
-    _sinusoidal__to_projjson_dict,
-    _stereographic__to_projjson_dict,
-    _utm__to_projjson_dict,
-    _transverse_mercator__to_projjson_dict,
-    _vertical_perspective__to_projjson_dict,
-    _web_mercator__to_projjson_dict
-
-struct ProjJSONDict{D<:AbstractDict{<:String,<:Any}} <: GFT.CoordinateReferenceSystemFormat
-    params::D
-end
-
-# We write the operation Dict to JSON to convert it to ProjJSON
-GFT.ProjJSON(operation::ProjJSONDict) = 
-    GFT.ProjJSON(JSON3.write(operation.params))
-
-# We can convert directly to ProjJSON here
-Base.convert(::Type{<:GFT.ProjJSON}, operation::ProjJSONDict) = 
-    GFT.ProjJSON(operation)
-# Or to String via ProjJSON
-Base.convert(::Type{<:String}, operation::ProjJSONDict) = 
-    convert(String, convert(GFT.ProjJSON, operation))
-# We need external help to convert to other formats, 
-# so we convert to ProjJSON first and call convert again
-Base.convert(T::Type{<:GFT.GeoFormat}, operation::ProjJSONDict) = 
-    convert(T, convert(GFT.ProjJSON, operation))
-
-function Base.show(io::IO, ::MIME"text/plain", operation::T) where T <: ProjJSONDict
-    println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
-    for (key, value) in operation.params
-        println(io, "$key: $value")
-    end
-end
-function Base.show(io::IO, operation::T) where T <: ProjJSONDict
-    println(io, "ProjJSON Coordinate Operation $(typeof(operation)):")
-end
-
 # Begin conversion definitions
+const SCHEMA = "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json"
 
 function _albers_equal_area__to_projjson_dict(;
     latitude_first_parallel::Real,
@@ -70,45 +9,27 @@ function _albers_equal_area__to_projjson_dict(;
     easting_false_origin::Real = 0.0,
     northing_false_origin::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Albers Equal Area",
-            "id" => Dict("authority" => "EPSG", "code" => 9822)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9822),
         ),
         "parameters" => [
             _latitude_false_origin(latitude_false_origin),
             _longitude_false_origin(longitude_false_origin),
             _latitude_1st_standard_parallel(latitude_first_parallel),
             _latitude_2nd_standard_parallel(latitude_second_parallel),
-            # TODO: why do these have Dict units? elsewhere its just "metre"
-            Dict(
-                "name" => "Easting at false origin",
-                "value" => easting_false_origin,
-                "unit" => Dict(
-                    "type" => "LinearUnit",
-                    "name" => "Metre",
-                    "conversion_factor" => 1
-                ),
-                "id" => Dict("authority" => "EPSG", "code" => 8826)
-            ),
-            Dict(
-                "name" => "Northing at false origin",
-                "value" => northing_false_origin,
-                "unit" => Dict(
-                    "type" => "LinearUnit",
-                    "name" => "Metre",
-                    "conversion_factor" => 1
-                ),
-                "id" => Dict("authority" => "EPSG", "code" => 8827)
-            ),
+            _easting_false_origin(easting_false_origin),
+            _northing_false_origin(northing_false_origin),
+            # Note: Units dicts were dropped from these entries, and "metre" 
+            # used instead as thats what is used everywhere else.
             _easting_false_origin(easting_false_origin),
             _northing_false_origin(northing_false_origin),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _azimuthal_equidistant__to_projjson_dict(;
@@ -117,13 +38,13 @@ function _azimuthal_equidistant__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Modified Azimuthal Equidistant",
-            "id" => Dict("authority" => "EPSG", "code" => 9832)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9832)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -132,7 +53,6 @@ function _azimuthal_equidistant__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _geostationary_satellite__to_projjson_dict(;
@@ -152,13 +72,13 @@ function _geostationary_satellite__to_projjson_dict(;
         @warn "The latitude of natural origin (lat_0) is not used within PROJ. It is only supported for exporting to the WKT or PROJ JSON formats."
     end
 
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict("name" => "Geostationary Satellite (Sweep $sweep_angle_axis)"),
+        "method" => InnerDict("name" => "Geostationary Satellite (Sweep $sweep_angle_axis)"),
         "parameters" => [
-            Dict(
+            InnerDict(
                 "name" => "Satellite height",
                 "value" => satellite_height,
                 "unit" => "metre"
@@ -169,7 +89,6 @@ function _geostationary_satellite__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _lambert_azimuthal_equal_area__to_projjson_dict(;
@@ -178,13 +97,13 @@ function _lambert_azimuthal_equal_area__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Lambert Azimuthal Equal Area",
-            "id" => Dict("authority" => "EPSG", "code" => 9820)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9820)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -193,7 +112,6 @@ function _lambert_azimuthal_equal_area__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _lambert_conformal_conic_2sp__to_projjson_dict(;
@@ -204,13 +122,13 @@ function _lambert_conformal_conic_2sp__to_projjson_dict(;
     easting_false_origin::Real = 0.0,
     northing_false_origin::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Lambert Conic Conformal (2SP)",
-            "id" => Dict("authority" => "EPSG", "code" => 9802)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9802)
         ),
         "parameters" => [
             _latitude_1st_standard_parallel(latitude_first_parallel),
@@ -221,7 +139,6 @@ function _lambert_conformal_conic_2sp__to_projjson_dict(;
             _northing_false_origin(northing_false_origin),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _lambert_convermal_conic_1sp__to_projjson_dict(;
@@ -231,13 +148,13 @@ function _lambert_convermal_conic_1sp__to_projjson_dict(;
     false_northing::Real = 0.0,
     scale_factor_natural_origin::Real = 1.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Lambert Conic Conformal (1SP)",
-            "id" => Dict("authority" => "EPSG", "code" => 9801)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9801)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -247,7 +164,6 @@ function _lambert_convermal_conic_1sp__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _lambert_cylindrical_equal_area__to_projjson_dict(;
@@ -256,13 +172,13 @@ function _lambert_cylindrical_equal_area__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Lambert Cylindrical Equal Area",
-            "id" => Dict("authority" => "EPSG", "code" => 9835)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9835)
         ),
         "parameters" => [
             _latitude_1st_standard_parallel(latitude_first_parallel),
@@ -271,7 +187,6 @@ function _lambert_cylindrical_equal_area__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _lambert_cylindrical_equal_area_scale__to_projjson_dict(;
@@ -280,13 +195,13 @@ function _lambert_cylindrical_equal_area_scale__to_projjson_dict(;
     false_northing::Real = 0.0,
     scale_factor_natural_origin::Real = 1.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Lambert Cylindrical Equal Area",
-            "id" => Dict("authority" => "EPSG", "code" => 9835)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9835)
         ),
         "parameters" => [
             _longitude_natural_origin(longitude_natural_origin),
@@ -295,7 +210,6 @@ function _lambert_cylindrical_equal_area_scale__to_projjson_dict(;
             _scale_factor_natural_origin(scale_factor_natural_origin),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _mercator_a__to_projjson_dict(;
@@ -309,13 +223,13 @@ function _mercator_a__to_projjson_dict(;
         throw(ArgumentError("This conversion is defined for only latitude_natural_origin = 0."))
     end
 
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Mercator (variant A)",
-            "id" => Dict("authority" => "EPSG", "code" => 9804)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9804)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -325,7 +239,6 @@ function _mercator_a__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _mercator_b__to_projjson_dict(;
@@ -334,13 +247,13 @@ function _mercator_b__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Mercator (variant B)",
-            "id" => Dict("authority" => "EPSG", "code" => 9805)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9805)
         ),
         "parameters" => [
             _latitude_1st_standard_parallel(latitude_first_parallel),
@@ -349,7 +262,6 @@ function _mercator_b__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _hotine_oblique_mercator_b__to_projjson_dict(;
@@ -361,13 +273,13 @@ function _hotine_oblique_mercator_b__to_projjson_dict(;
     azimuth_projection_centre::Real,
     scale_factor_projection_centre::Real = 1.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Hotine Oblique Mercator (variant B)",
-            "id" => Dict("authority" => "EPSG", "code" => 9815)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9815),
         ),
         "parameters" => [
             _latitude_projection_centre(latitude_projection_centre),
@@ -379,7 +291,6 @@ function _hotine_oblique_mercator_b__to_projjson_dict(;
             _northing_projection_centre(northing_projection_centre),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _orthographic__to_projjson_dict(;
@@ -388,13 +299,13 @@ function _orthographic__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Orthographic",
-            "id" => Dict("authority" => "EPSG", "code" => 9840)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9840)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -403,7 +314,6 @@ function _orthographic__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _polar_stereographic_a__to_projjson_dict(;
@@ -417,13 +327,13 @@ function _polar_stereographic_a__to_projjson_dict(;
         throw(ArgumentError("latitude_natural_origin must be either +90 or -90"))
     end
 
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Polar Stereographic (variant A)",
-            "id" => Dict("authority" => "EPSG", "code" => 9810)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9810)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -433,7 +343,6 @@ function _polar_stereographic_a__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _polar_stereographic_b__to_projjson_dict(;
@@ -442,13 +351,13 @@ function _polar_stereographic_b__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Polar Stereographic (variant B)",
-            "id" => Dict("authority" => "EPSG", "code" => 9829)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9829)
         ),
         "parameters" => [
             _latitude_standard_paralel(latitude_standard_parallel),
@@ -457,7 +366,6 @@ function _polar_stereographic_b__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _sinosoidal__to_projjson_dict(;
@@ -465,18 +373,17 @@ function _sinosoidal__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict("name" => "Sinusoidal"),
+        "method" => InnerDict("name" => "Sinusoidal"),
         "parameters" => [
             _longitude_natural_origin(longitude_natural_origin),
             _false_easting(false_easting),
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _stereographic__to_projjson_dict(;
@@ -486,11 +393,11 @@ function _stereographic__to_projjson_dict(;
     false_northing::Real = 0.0,
     scale_factor_natural_origin::Real = 1.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict("name" => "Stereographic"),
+        "method" => InnerDict("name" => "Stereographic"),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
             _longitude_natural_origin(longitude_natural_origin),
@@ -499,7 +406,6 @@ function _stereographic__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _utm__to_projjson_dict(zone::Integer, hemisphere::String = "N")
@@ -511,13 +417,13 @@ function _utm__to_projjson_dict(zone::Integer, hemisphere::String = "N")
         throw(ArgumentError("hemisphere must be either N or S"))
     end
 
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "UTM zone $(zone)$(hemisphere)",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Transverse Mercator",
-            "id" => Dict("authority" => "EPSG", "code" => 9807)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9807)
         ),
         "parameters" => [
             _latitude_natural_origin(0.0),
@@ -527,7 +433,6 @@ function _utm__to_projjson_dict(zone::Integer, hemisphere::String = "N")
             _false_northing(hemisphere == "N" ? 0.0 : 10000000.0),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _transverse_mercator__to_projjson_dict(;
@@ -537,13 +442,13 @@ function _transverse_mercator__to_projjson_dict(;
     false_northing::Real = 0.0,
     scale_factor_natural_origin::Real = 1.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Transverse Mercator",
-            "id" => Dict("authority" => "EPSG", "code" => 9807)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9807)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -553,7 +458,6 @@ function _transverse_mercator__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _vertical_perspective__to_projjson_dict(;
@@ -563,13 +467,13 @@ function _vertical_perspective__to_projjson_dict(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Vertical Perspective",
-            "id" => Dict("authority" => "EPSG", "code" => 9838)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9838)
         ),
         "parameters" => [
             _viewpoint_height(viewpoint_height),
@@ -579,7 +483,6 @@ function _vertical_perspective__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
 function _web_mercator__to_projjson_dict(;
@@ -592,13 +495,13 @@ function _web_mercator__to_projjson_dict(;
         throw(ArgumentError("This conversion is defined for only latitude_natural_origin = 0."))
     end
 
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Popular Visualisation Pseudo Mercator",
-            "id" => Dict("authority" => "EPSG", "code" => 1024)
+            "id" => InnerDict("authority" => "EPSG", "code" => 1024)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -607,9 +510,37 @@ function _web_mercator__to_projjson_dict(;
             _false_northing(false_northing),
         ]
     )
-    return ProjJSONDict(params)
 end
 
+function _rotated_latitude_longitude__to_projjson_dict(;
+    grid_north_pole_latitude,
+    grid_north_pole_longitude,
+    north_pole_grid_longitude,
+)
+    InnerDict(
+        SCHEMA,
+        "type" => "Conversion",
+        "name" => "Pole rotation (netCDF CF convention)",
+        "method" => InnerDict("name" => "Pole rotation (netCDF CF convention)"),
+        "parameters" => [
+            InnerDict(
+                "name" => "Grid north pole latitude (netCDF CF convention)",
+                "value" => grid_north_pole_latitude,
+                "unit" => "degree",
+            ),
+            InnerDict(
+                "name" => "Grid north pole longitude (netCDF CF convention)",
+                "value" => grid_north_pole_longitude,
+                "unit" => "degree",
+            ),
+            InnerDict(
+                "name" => "North pole grid longitude (netCDF CF convention)",
+                "value" => north_pole_grid_longitude,
+                "unit" => "degree",
+            ),
+        ],
+    )
+end
 #=
 
 function CassiniSoldnerConversion(;
@@ -618,13 +549,13 @@ function CassiniSoldnerConversion(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Cassini-Soldner",
-            "id" => Dict("authority" => "EPSG", "code" => 9806)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9806)
         ),
         "parameters" => [
             _latitude_natural_origin(latitude_natural_origin),
@@ -645,13 +576,13 @@ function KrovakConversion(;
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
 )
-    params = Dict(
-        "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json",
+    InnerDict(
+        SCHEMA,
         "type" => "Conversion",
         "name" => "unknown",
-        "method" => Dict(
+        "method" => InnerDict(
             "name" => "Krovak",
-            "id" => Dict("authority" => "EPSG", "code" => 9819)
+            "id" => InnerDict("authority" => "EPSG", "code" => 9819)
         ),
         "parameters" => [
             _latitude_projection_centre(latitude_projection_centre),
@@ -666,4 +597,3 @@ function KrovakConversion(;
     return KrovakConversion(params)
 end
 =#
-end # module
