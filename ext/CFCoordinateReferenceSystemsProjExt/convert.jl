@@ -50,10 +50,17 @@ Base.convert(::Type{String}, cf::CFProjection) =
     convert(String, convert(GFT.ProjJSON, cf))
 
 GFT.ProjJSON(cf::CFProjection) = convert(GFT.ProjJSON, cf)
-GFT.ProjJSON(pjd::ProjJSONDict) = GFT.ProjJSON(JSON3.write(parent(pjd)))
 
-Base.convert(T::Type{<:CFProjection}, gf::Union{GFT.CoordinateReferenceSystemFormat,GFT.MixedFormat}) =
-    convert(T, convert(GFT.ProjJSON, gf))
-function Base.convert(T::Type{<:CFProjection}, pj::GFT.ProjJSON)
-    JSON3.read(pj.data, InnerDict)
+function Base.convert(T::Type{<:CFProjection}, gf::Union{GFT.CoordinateReferenceSystemFormat,GFT.MixedFormat})
+    # convert(T, convert(GFT.WellKnownText, gf)) # This needs GDAL
+    jsondict = JSON3.read(convert(String, GFT.ProjJSON(Proj.CRS(gf))))
+    if jsondict["type"] == "Conversion" 
+        name = jsondict["method"]["name"]
+        @show name jsondict
+        to_cf_func = PROJJSON_METHOD_NAME_MAP[name]
+        @show to_cf_func
+        to_cf_func(jsondict)
+    else
+        error("Not implemented for $jsondict")
+    end
 end

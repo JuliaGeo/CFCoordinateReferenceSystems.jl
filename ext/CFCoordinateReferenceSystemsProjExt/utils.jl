@@ -12,7 +12,7 @@ function _geographic_crs(;
     name = "WSG 84",
     datum = WGS84DATUM,
 )
-    geographic_crs_dict = ProjJSONDict(
+    geographic_crs_dict = InnerDict(
         SCHEMA,
         "type" => "GeographicCRS",
         "name" => name,

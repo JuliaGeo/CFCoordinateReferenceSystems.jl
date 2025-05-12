@@ -20,6 +20,30 @@ const GEOGRAPHIC_GRID_MAPPING_NAME_MAP = Dict{String,Function}(
     "rotated_latitude_longitude" => _rotated_latitude_longitude
 )
 
+const PROJJSON_METHOD_NAME_MAP = Dict{String,Function}(
+    "Albers Equal Area" => _albers_conical_equal_area__to_cf,
+    "Modified Azimuthal Equidistant" => _azimuthal_equidistant__to_cf,
+    "Satellite height" => _geostationary__to_cf,
+    "Satellite height (sweep_x)" => _geostationary__to_cf,
+    "Satellite height (sweep_y)" => _geostationary__to_cf,
+    "Lambert Azimuthal Equal Area" => _lambert_azimuthal_equal_area__to_cf,
+    "Lambert Conformal Conic (1SP)" => _lambert_conformal_conic__to_cf,
+    "Lambert Conformal Conic (2SP)" => _lambert_conformal_conic__to_cf,
+    "Lambert Cylindrical Equal Area" => _lambert_cylindrical_equal_area__to_cf,
+    "Mercator (variant A)" => _mercator__to_cf,
+    "Mercator (variant B)" => _mercator__to_cf,
+    "Hotine Oblique Mercator (variant B)" => _oblique_mercator__to_cf,
+    "Orthographic" => _orthographic__to_cf,
+    "Polar Stereographic (variant A)" => _polar_stereographic__to_cf,
+    "Polar Stereographic (variant B)" => _polar_stereographic__to_cf,
+    "Sinusoidal" => _sinusoidal__to_cf,
+    "Stereographic" => _stereographic__to_cf,
+    "Transverse Mercator" => _transverse_mercator__to_cf,
+    "Vertical Perspective" => _vertical_perspective__to_cf,
+)
+
+# TODO: Geographic to CF
+
 # Copied from PROJ so we dont have to call it for something so trivial
 const PRIME_MERIDIAN_LONGITUDE = OrderedDict(
     "Copenhagen" => 12.34399,
