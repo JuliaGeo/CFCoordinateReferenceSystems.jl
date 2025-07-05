@@ -45,7 +45,7 @@ const PROJJSON_METHOD_NAME_MAP = Dict{String,Function}(
 # TODO: Geographic to CF
 
 # Copied from PROJ so we dont have to call it for something so trivial
-const PRIME_MERIDIAN_LONGITUDE = OrderedDict(
+const PRIME_MERIDIAN_LONGITUDE = LittleDict(
     "Copenhagen" => 12.34399,
     "Greenwich" => 0.0,
     "Lisbon" => -9.0754862,
@@ -66,13 +66,13 @@ const PRIME_MERIDIAN_LONGITUDE = OrderedDict(
 const UNIT_DEGREE = "degree" 
 
 const DEFAULT_ELLIPSOIDAL_2D_AXIS_MAP = [
-    OrderedDict(
+    LittleDict(
         "name" => "Longitude",
         "abbreviation" => "lon",
         "direction" => "east",
         "unit" => UNIT_DEGREE,
     ),
-    OrderedDict(
+    LittleDict(
         "name" => "Latitude",
         "abbreviation" => "lat",
         "direction" => "north",

@@ -2,7 +2,7 @@ module CFCoordinateReferenceSystems
 
 import GeoFormatTypes as GFT
 
-using OrderedCollections: OrderedDict
+using OrderedCollections: LittleDict
 
 export CFProjection
 

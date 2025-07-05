@@ -263,7 +263,7 @@ end
 
 # Inverse mapping functions
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
-function _albers_conical_equal_area__to_cf(conversion::OrderedDict)
+function _albers_conical_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     return InnerDict(
         "grid_mapping_name" => "albers_conical_equal_area",
