@@ -1,110 +1,62 @@
 """
-This module contains mappings necessary to convert from
+This file contains mappings necessary to convert from
 a CRS to a CF-1.8 compliant projection.
 
 http://cfconventions.org/cf-conventions/cf-conventions.html#appendix-grid-mappings
 """
 
-module CF1x8
-
-using ..CoordinateOperations
-
-
-function _get_standard_parallels(standard_parallel::String)
-    val_split = split(input_str, ",")
-    if length(val_split) > 1
-        return ntuple(2) do i
-            parse(Float64, strip(val_split[i]))
-        end
-    else
-        return parse(Float64, strip(standard_parallel))
-    end
-end
-
-function _get_standard_parallels(standard_parallels::Vector{<: Real})
-    p1, p2 = standard_parallels
-    return Float64(p1), Float64(p2)
-end
-
-function _get_standard_parallels(standard_parallel::Real)
-    return Float64(standard_parallel), 0.0
-end
-
-# Helper function to convert operation parameters to dictionary
-function _to_dict(operation)
-    param_dict = OrderedDict{String, Any}()
-    for param in operation.params
-        param_dict[lowercase(replace(param.name, " " => "_"))] = param.value
-    end
-    return param_dict
-end
-
 function _horizontal_datum_from_params(cf_params)
-    datum_name = get(cf_params, "horizontal_datum_name", nothing)
-    if !isnothing(datum_name) && datum_name ∉ ("undefined", "unknown")
-        try
-            return Datum.from_name(datum_name)
-        catch e
-            if !isa(e, CRSError)
-                rethrow(e)
-            end
-        end
+    datum_name = if haskey(cf_params, "horizontal_datum_name")
+        datum_name = cf_params["horizontal_datum_name"]
+        datum_name in UNKNOWN_NAMES || return datum_name
+        datum_name
     end
-
     # Step 1: build ellipsoid
-    ellipsoid = nothing
     ellipsoid_name = get(cf_params, "reference_ellipsoid_name", nothing)
-    try
-        ellipsoid = Dict(
+    ellipsoid = if all(k -> haskey(cf_params, k), ("semi_major_axis", "inverse_flattening", "earth_radius"))
+        InnerDict(
             "name" => isnothing(ellipsoid_name) ? "undefined" : ellipsoid_name,
-            "semi_major_axis" => get(cf_params, "semi_major_axis", nothing),
-            "semi_minor_axis" => get(cf_params, "semi_minor_axis", nothing),
-            "inverse_flattening" => get(cf_params, "inverse_flattening", nothing),
-            "radius" => get(cf_params, "earth_radius", nothing)
+            "semi_major_axis" => cf_params["semi_major_axis"],
+            "semi_minor_axis" => get(cf_params, "semi_minor_axis", 0.0),
+            "inverse_flattening" => cf_params["inverse_flattening"],
+            "radius" => cf_params["earth_radius"],
         )
-    catch e
-        if !isa(e, CRSError)
-            rethrow(e)
-        end
-        if !isnothing(ellipsoid_name) && ellipsoid_name ∉ ("undefined", "unknown")
-            ellipsoid = Ellipsoid.from_name(ellipsoid_name)
-        end
+    else
+        # TODO
+        ellipsoid_name #elipsoid_from_name(ellipsoid_name)
     end
 
     # Step 2: build prime meridian
-    prime_meridian = nothing
     prime_meridian_name = get(cf_params, "prime_meridian_name", nothing)
-    try
-        prime_meridian = CustomPrimeMeridian(
-            name=isnothing(prime_meridian_name) ? "undefined" : prime_meridian_name,
+    prime_meridian = if haskey(cf_params, "longitude_of_prime_meridian")
+        _prime_meridian(
+            name=prime_meridian_name,
             longitude=cf_params["longitude_of_prime_meridian"]
         )
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        if !isnothing(prime_meridian_name) && prime_meridian_name ∉ ("undefined", "unknown")
-            prime_meridian = PrimeMeridian.from_name(prime_meridian_name)
+    else
+        if isnothing(prime_meridian_name) || prime_meridian_name in ("undefined", "unknown")
+            nothing
+        else
+            _prime_meridian(; name=prime_meridian_name)
         end
     end
 
     # Step 3: build datum
-    if !isnothing(ellipsoid) || !isnothing(prime_meridian)
-        return CustomDatum(
+    if isnothing(ellipsoid) && isnothing(prime_meridian)
+        return nothing
+    else
+        return _custom_datum(
             name=isnothing(datum_name) ? "undefined" : datum_name,
             ellipsoid=isnothing(ellipsoid) ? "WGS 84" : ellipsoid,
             prime_meridian=isnothing(prime_meridian) ? "Greenwich" : prime_meridian
         )
     end
-    return nothing
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
 function _albers_conical_equal_area(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
-    """
     first_parallel, second_parallel = _get_standard_parallels(cf_params["standard_parallel"])
-    return AlbersEqualAreaConversion(
+    return _albers_equal_area__to_projjson_dict(
         latitude_first_parallel=first_parallel,
         latitude_second_parallel=isnothing(second_parallel) ? 0.0 : second_parallel,
         latitude_false_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -114,11 +66,9 @@ function _albers_conical_equal_area(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
 function _azimuthal_equidistant(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
-    """
-    return AzimuthalEquidistantConversion(
+    return _azimuthal_equidistant__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -126,19 +76,14 @@ function _azimuthal_equidistant(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
 function _geostationary(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
-    """
-    try
-        sweep_angle_axis = cf_params["sweep_angle_axis"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        sweep_angle_axis = Dict("x" => "y", "y" => "x")[lowercase(cf_params["fixed_angle_axis"])]
+    sweep_angle_axis = if haskey(cf_params, "sweep_angle_axis")
+        cf_params["sweep_angle_axis"]
+    else
+        Dict("x" => "y", "y" => "x")[lowercase(cf_params["fixed_angle_axis"])]
     end
-    return GeostationarySatelliteConversion(
+    return _geostationary_satellite__to_projjson_dict(
         sweep_angle_axis=sweep_angle_axis,
         satellite_height=cf_params["perspective_point_height"],
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -148,11 +93,9 @@ function _geostationary(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
 function _lambert_azimuthal_equal_area(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
-    """
-    return LambertAzimuthalEqualAreaConversion(
+    return _lambert_azimuthal_equal_area__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -160,13 +103,18 @@ function _lambert_azimuthal_equal_area(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
 function _lambert_conformal_conic(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
-    """
     first_parallel, second_parallel = _get_standard_parallels(cf_params["standard_parallel"])
-    if !isnothing(second_parallel)
-        return LambertConformalConic2SPConversion(
+    if isnothing(second_parallel)
+        return _lambert_conformal_conic_1sp__to_projjson_dict(
+            latitude_natural_origin=first_parallel,
+            longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
+    else
+        return _lambert_conformal_conic_2sp__to_projjson_dict(
             latitude_first_parallel=first_parallel,
             latitude_second_parallel=second_parallel,
             latitude_false_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
@@ -175,60 +123,50 @@ function _lambert_conformal_conic(cf_params)
             northing_false_origin=get(cf_params, "false_northing", 0.0)
         )
     end
-    return LambertConformalConic1SPConversion(
-        latitude_natural_origin=first_parallel,
-        longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
 function _lambert_cylindrical_equal_area(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
-    """
     if haskey(cf_params, "scale_factor_at_projection_origin")
-        return LambertCylindricalEqualAreaScaleConversion(
+        return _lambert_cylindrical_equal_area_scale__to_projjson_dict(
             scale_factor_natural_origin=cf_params["scale_factor_at_projection_origin"],
             longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0)
         )
+    else
+        return _lambert_cylindrical_equal_area__to_projjson_dict(
+            latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
+            longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
     end
-    return LambertCylindricalEqualAreaConversion(
-        latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
-        longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
 function _mercator(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
-    """
     if haskey(cf_params, "scale_factor_at_projection_origin")
-        return MercatorAConversion(
+        return _mercator_a__to_projjson_dict(
             latitude_natural_origin=get(cf_params, "standard_parallel", 0.0),
             longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0),
             scale_factor_natural_origin=cf_params["scale_factor_at_projection_origin"]
         )
+    else
+        return _mercator_b__to_projjson_dict(
+            latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
+            longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0)
+        )
     end
-    return MercatorBConversion(
-        latitude_first_parallel=get(cf_params, "standard_parallel", 0.0),
-        longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0)
-    )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
 function _oblique_mercator(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
-    """
-    return HotineObliqueMercatorBConversion(
+    return _hotine_oblique_mercator_b__to_projjson_dict(
         latitude_projection_centre=cf_params["latitude_of_projection_origin"],
         longitude_projection_centre=cf_params["longitude_of_projection_origin"],
         azimuth_projection_centre=cf_params["azimuth_of_central_line"],
@@ -239,11 +177,9 @@ function _oblique_mercator(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
 function _orthographic(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
-    """
-    return OrthographicConversion(
+    return _orthographic__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -251,43 +187,38 @@ function _orthographic(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
 function _polar_stereographic(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
-    """
     if haskey(cf_params, "standard_parallel")
-        return PolarStereographicBConversion(
+        return _polar_stereographic_b__to_projjson_dict(
             latitude_standard_parallel=cf_params["standard_parallel"],
             longitude_origin=cf_params["straight_vertical_longitude_from_pole"],
             false_easting=get(cf_params, "false_easting", 0.0),
             false_northing=get(cf_params, "false_northing", 0.0)
         )
+    else
+        return _polar_stereographic_a__to_projjson_dict(
+            latitude_natural_origin=cf_params["latitude_of_projection_origin"],
+            longitude_natural_origin=cf_params["straight_vertical_longitude_from_pole"],
+            false_easting=get(cf_params, "false_easting", 0.0),
+            false_northing=get(cf_params, "false_northing", 0.0),
+            scale_factor_natural_origin=get(cf_params, "scale_factor_at_projection_origin", 1.0)
+        )
     end
-    return PolarStereographicAConversion(
-        latitude_natural_origin=cf_params["latitude_of_projection_origin"],
-        longitude_natural_origin=cf_params["straight_vertical_longitude_from_pole"],
-        false_easting=get(cf_params, "false_easting", 0.0),
-        false_northing=get(cf_params, "false_northing", 0.0),
-        scale_factor_natural_origin=get(cf_params, "scale_factor_at_projection_origin", 1.0)
-    )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
 function _sinusoidal(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
-    """
-    return SinusoidalConversion(
+    return _sinusoidal__to_projjson_dict(
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
         false_northing=get(cf_params, "false_northing", 0.0)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
 function _stereographic(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
-    """
-    return StereographicConversion(
+    return _stereographic__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -296,11 +227,9 @@ function _stereographic(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
 function _transverse_mercator(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
-    """
-    return TransverseMercatorConversion(
+    return _transverse_mercator__to_projjson_dict(
         latitude_natural_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_natural_origin=get(cf_params, "longitude_of_central_meridian", 0.0),
         false_easting=get(cf_params, "false_easting", 0.0),
@@ -309,11 +238,9 @@ function _transverse_mercator(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
 function _vertical_perspective(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
-    """
-    return VerticalPerspectiveConversion(
+    return _vertical_perspective__to_projjson_dict(;
         viewpoint_height=cf_params["perspective_point_height"],
         latitude_topocentric_origin=get(cf_params, "latitude_of_projection_origin", 0.0),
         longitude_topocentric_origin=get(cf_params, "longitude_of_projection_origin", 0.0),
@@ -322,24 +249,23 @@ function _vertical_perspective(cf_params)
     )
 end
 
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
 function _rotated_latitude_longitude(cf_params)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-    """
-    return PoleRotationNetCDFCFConversion(
-        grid_north_pole_latitude=cf_params["grid_north_pole_latitude"],
-        grid_north_pole_longitude=cf_params["grid_north_pole_longitude"],
-        north_pole_grid_longitude=get(cf_params, "north_pole_grid_longitude", 0.0)
+    grid_north_pole_latitude = cf_params["grid_north_pole_latitude"],
+    grid_north_pole_longitude = cf_params["grid_north_pole_longitude"],
+    north_pole_grid_longitude = get(cf_params, "north_pole_grid_longitude", 0.0)
+    _rotated_latitude_longitude__to_projjson_dict(;
+        grid_north_pole_latitude,
+        grid_north_pole_longitude,
+        north_pole_grid_longitude,
     )
 end
 
 # Inverse mapping functions
-function _albers_conical_equal_area__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_albers_equal_area
+function _albers_conical_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "albers_conical_equal_area",
         "standard_parallel" => (
             params["latitude_of_1st_standard_parallel"],
@@ -352,12 +278,10 @@ function _albers_conical_equal_area__to_cf(conversion)
     )
 end
 
-function _azimuthal_equidistant__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#azimuthal-equidistant
+function _azimuthal_equidistant__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "azimuthal_equidistant",
         "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
         "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
@@ -366,16 +290,14 @@ function _azimuthal_equidistant__to_cf(conversion)
     )
 end
 
-function _geostationary__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
+function _geostationary__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     sweep_angle_axis = "y"
     if endswith(lowercase(conversion.method_name), "(sweep_x)")
         sweep_angle_axis = "x"
     end
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "geostationary",
         "sweep_angle_axis" => sweep_angle_axis,
         "perspective_point_height" => params["satellite_height"],
@@ -386,12 +308,10 @@ function _geostationary__to_cf(conversion)
     )
 end
 
-function _lambert_azimuthal_equal_area__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#lambert-azimuthal-equal-area
+function _lambert_azimuthal_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "lambert_azimuthal_equal_area",
         "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
         "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
@@ -400,13 +320,11 @@ function _lambert_azimuthal_equal_area__to_cf(conversion)
     )
 end
 
-function _lambert_conformal_conic__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
+function _lambert_conformal_conic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(2sp)")
-        return Dict(
+        return InnerDict(
             "grid_mapping_name" => "lambert_conformal_conic",
             "standard_parallel" => (
                 params["latitude_of_1st_standard_parallel"],
@@ -417,22 +335,21 @@ function _lambert_conformal_conic__to_cf(conversion)
             "false_easting" => params["easting_at_false_origin"],
             "false_northing" => params["northing_at_false_origin"]
         )
+    else
+        return InnerDict(
+            "grid_mapping_name" => "lambert_conformal_conic",
+            "standard_parallel" => params["latitude_of_natural_origin"],
+            "longitude_of_central_meridian" => params["longitude_of_natural_origin"],
+            "false_easting" => params["false_easting"],
+            "false_northing" => params["false_northing"]
+        )
     end
-    return Dict(
-        "grid_mapping_name" => "lambert_conformal_conic",
-        "standard_parallel" => params["latitude_of_natural_origin"],
-        "longitude_of_central_meridian" => params["longitude_of_natural_origin"],
-        "false_easting" => params["false_easting"],
-        "false_northing" => params["false_northing"]
-    )
 end
 
-function _lambert_cylindrical_equal_area__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_cylindrical_equal_area
+function _lambert_cylindrical_equal_area__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "lambert_cylindrical_equal_area",
         "standard_parallel" => params["latitude_of_1st_standard_parallel"],
         "longitude_of_central_meridian" => params["longitude_of_natural_origin"],
@@ -441,13 +358,11 @@ function _lambert_cylindrical_equal_area__to_cf(conversion)
     )
 end
 
-function _mercator__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
+function _mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant_a)")
-        return Dict(
+        return InnerDict(
             "grid_mapping_name" => "mercator",
             "standard_parallel" => params["latitude_of_natural_origin"],
             "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
@@ -455,41 +370,35 @@ function _mercator__to_cf(conversion)
             "false_northing" => params["false_northing"],
             "scale_factor_at_projection_origin" => params["scale_factor_at_natural_origin"]
         )
+    else
+        return InnerDict(
+            "grid_mapping_name" => "mercator",
+            "standard_parallel" => params["latitude_of_1st_standard_parallel"],
+            "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
+            "false_easting" => params["false_easting"],
+            "false_northing" => params["false_northing"]
+        )
     end
-    return Dict(
-        "grid_mapping_name" => "mercator",
-        "standard_parallel" => params["latitude_of_1st_standard_parallel"],
-        "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
-        "false_easting" => params["false_easting"],
-        "false_northing" => params["false_northing"]
-    )
 end
 
-function _oblique_mercator__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_oblique_mercator
+function _oblique_mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if params["angle_from_rectified_to_skew_grid"] != 0
         @warn "angle from rectified to skew grid parameter lost in conversion to CF"
     end
-    try
-        azimuth_of_central_line = params["azimuth_of_initial_line"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        azimuth_of_central_line = params["azimuth_at_projection_centre"]
+    # Handle some deprecated parameter names
+    azimuth_of_central_line = if haskey(params, "azimuth_of_initial_line")
+        params["azimuth_of_initial_line"]
+    else
+        params["azimuth_at_projection_centre"]
     end
-    try
-        scale_factor_at_projection_origin = params["scale_factor_on_initial_line"]
-    catch e
-        if !isa(e, KeyError)
-            rethrow(e)
-        end
-        scale_factor_at_projection_origin = params["scale_factor_at_projection_centre"]
+    scale_factor_at_projection_origin = if haskey(params, "scale_factor_on_initial_line")
+        params["scale_factor_on_initial_line"]
+    else
+        params["scale_factor_at_projection_centre"]
     end
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "oblique_mercator",
         "latitude_of_projection_origin" => params["latitude_of_projection_centre"],
         "longitude_of_projection_origin" => params["longitude_of_projection_centre"],
@@ -500,12 +409,10 @@ function _oblique_mercator__to_cf(conversion)
     )
 end
 
-function _orthographic__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_orthographic
+function _orthographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "orthographic",
         "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
         "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
@@ -514,36 +421,33 @@ function _orthographic__to_cf(conversion)
     )
 end
 
-function _polar_stereographic__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
+function _polar_stereographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
     if endswith(lowercase(conversion.method_name), "(variant b)")
-        return Dict(
+        return InnerDict(
             "grid_mapping_name" => "polar_stereographic",
             "standard_parallel" => params["latitude_of_standard_parallel"],
             "straight_vertical_longitude_from_pole" => params["longitude_of_origin"],
             "false_easting" => params["false_easting"],
             "false_northing" => params["false_northing"]
         )
+    else
+        return InnerDict(
+            "grid_mapping_name" => "polar_stereographic",
+            "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
+            "straight_vertical_longitude_from_pole" => params["longitude_of_natural_origin"],
+            "false_easting" => params["false_easting"],
+            "false_northing" => params["false_northing"],
+            "scale_factor_at_projection_origin" => params["scale_factor_at_natural_origin"]
+        )
     end
-    return Dict(
-        "grid_mapping_name" => "polar_stereographic",
-        "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
-        "straight_vertical_longitude_from_pole" => params["longitude_of_natural_origin"],
-        "false_easting" => params["false_easting"],
-        "false_northing" => params["false_northing"],
-        "scale_factor_at_projection_origin" => params["scale_factor_at_natural_origin"]
-    )
 end
 
-function _sinusoidal__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_sinusoidal
+function _sinusoidal__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "sinusoidal",
         "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
         "false_easting" => params["false_easting"],
@@ -551,12 +455,10 @@ function _sinusoidal__to_cf(conversion)
     )
 end
 
-function _stereographic__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_stereographic
+function _stereographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "stereographic",
         "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
         "longitude_of_projection_origin" => params["longitude_of_natural_origin"],
@@ -566,12 +468,10 @@ function _stereographic__to_cf(conversion)
     )
 end
 
-function _transverse_mercator__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_transverse_mercator
+function _transverse_mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "transverse_mercator",
         "latitude_of_projection_origin" => params["latitude_of_natural_origin"],
         "longitude_of_central_meridian" => params["longitude_of_natural_origin"],
@@ -581,12 +481,10 @@ function _transverse_mercator__to_cf(conversion)
     )
 end
 
-function _vertical_perspective__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#vertical-perspective
+function _vertical_perspective__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "vertical_perspective",
         "perspective_point_height" => params["viewpoint_height"],
         "latitude_of_projection_origin" => params["latitude_of_topocentric_origin"],
@@ -596,12 +494,10 @@ function _vertical_perspective__to_cf(conversion)
     )
 end
 
-function _rotated_latitude_longitude__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
+function _rotated_latitude_longitude__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "rotated_latitude_longitude",
         "grid_north_pole_latitude" => params["o_lat_p"],
         "grid_north_pole_longitude" => params["lon_0"] - 180,
@@ -609,53 +505,13 @@ function _rotated_latitude_longitude__to_cf(conversion)
     )
 end
 
-function _pole_rotation_netcdf__to_cf(conversion)
-    """
-    http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
-    """
+# http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
+function _pole_rotation_netcdf__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    return Dict(
+    return InnerDict(
         "grid_mapping_name" => "rotated_latitude_longitude",
         "grid_north_pole_latitude" => params["grid_north_pole_latitude_(netcdf_cf_convention)"],
         "grid_north_pole_longitude" => params["grid_north_pole_longitude_(netcdf_cf_convention)"],
         "north_pole_grid_longitude" => params["north_pole_grid_longitude_(netcdf_cf_convention)"]
     )
 end
-
-# Export public functions
-export _horizontal_datum_from_params,
-       _albers_conical_equal_area,
-       _azimuthal_equidistant,
-       _geostationary,
-       _lambert_azimuthal_equal_area,
-       _lambert_conformal_conic,
-       _lambert_cylindrical_equal_area,
-       _mercator,
-       _oblique_mercator,
-       _orthographic,
-       _polar_stereographic,
-       _sinusoidal,
-       _stereographic,
-       _transverse_mercator,
-       _vertical_perspective,
-       _rotated_latitude_longitude
-
-# Export inverse mapping functions
-export _albers_conical_equal_area__to_cf,
-       _azimuthal_equidistant__to_cf,
-       _geostationary__to_cf,
-       _lambert_azimuthal_equal_area__to_cf,
-       _lambert_conformal_conic__to_cf,
-       _lambert_cylindrical_equal_area__to_cf,
-       _mercator__to_cf,
-       _oblique_mercator__to_cf,
-       _orthographic__to_cf,
-       _polar_stereographic__to_cf,
-       _sinusoidal__to_cf,
-       _stereographic__to_cf,
-       _transverse_mercator__to_cf,
-       _vertical_perspective__to_cf,
-       _rotated_latitude_longitude__to_cf,
-       _pole_rotation_netcdf__to_cf
-
-end # module
