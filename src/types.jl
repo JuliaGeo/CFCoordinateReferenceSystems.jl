@@ -1,4 +1,4 @@
-const InnerDict = OrderedDict{String,Any}
+const InnerDict = LittleDict{String,Any}
 struct CFProjection{T<:AbstractDict{<:AbstractString,<:Any}} <: GFT.CoordinateReferenceSystemFormat
     params::T
 end
