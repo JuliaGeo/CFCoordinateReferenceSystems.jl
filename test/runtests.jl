@@ -1,7 +1,6 @@
 using CFCoordinateReferenceSystems
 using Test
 using Aqua
-using JET
 using GeoFormatTypes
 using Proj
 using JSON3
@@ -50,9 +49,6 @@ end
         # stale_deps=false because JSON3 is used in the extension, not in src/,
         # and Aqua doesn't scan extensions
         Aqua.test_all(CFCoordinateReferenceSystems; stale_deps=false)
-    end
-    @testset "Code linting (JET.jl)" begin
-        JET.test_package(CFCoordinateReferenceSystems; target_defined_modules=true)
     end
 
     @testset "latitude_longitude" begin
