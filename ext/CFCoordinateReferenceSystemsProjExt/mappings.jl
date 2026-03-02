@@ -1,4 +1,7 @@
-# Dictionary to map grid mapping names to their conversion functions
+# Mappings between CF grid mapping names, PROJ/EPSG method names, and conversion functions.
+# CF grid mapping names are from CF Conventions Appendix F.
+# PROJ method names are from the EPSG registry.
+# Mapping structure derived from pyproj (https://github.com/pyproj4/pyproj).
 const GRID_MAPPING_NAME_MAP = Dict{String,Function}(
     "albers_conical_equal_area" => _albers_conical_equal_area,
     "azimuthal_equidistant" => _azimuthal_equidistant,
@@ -23,12 +26,15 @@ const GEOGRAPHIC_GRID_MAPPING_NAME_MAP = Dict{String,Function}(
 const PROJJSON_METHOD_NAME_MAP = Dict{String,Function}(
     "Albers Equal Area" => _albers_conical_equal_area__to_cf,
     "Modified Azimuthal Equidistant" => _azimuthal_equidistant__to_cf,
-    "Satellite height" => _geostationary__to_cf,
-    "Satellite height (sweep_x)" => _geostationary__to_cf,
-    "Satellite height (sweep_y)" => _geostationary__to_cf,
+    "Azimuthal Equidistant" => _azimuthal_equidistant__to_cf,
+    "Geostationary Satellite (Sweep X)" => _geostationary__to_cf,
+    "Geostationary Satellite (Sweep Y)" => _geostationary__to_cf,
     "Lambert Azimuthal Equal Area" => _lambert_azimuthal_equal_area__to_cf,
     "Lambert Conformal Conic (1SP)" => _lambert_conformal_conic__to_cf,
     "Lambert Conformal Conic (2SP)" => _lambert_conformal_conic__to_cf,
+    # PROJ uses "Conic Conformal" ordering in some cases
+    "Lambert Conic Conformal (1SP)" => _lambert_conformal_conic__to_cf,
+    "Lambert Conic Conformal (2SP)" => _lambert_conformal_conic__to_cf,
     "Lambert Cylindrical Equal Area" => _lambert_cylindrical_equal_area__to_cf,
     "Mercator (variant A)" => _mercator__to_cf,
     "Mercator (variant B)" => _mercator__to_cf,
@@ -41,8 +47,6 @@ const PROJJSON_METHOD_NAME_MAP = Dict{String,Function}(
     "Transverse Mercator" => _transverse_mercator__to_cf,
     "Vertical Perspective" => _vertical_perspective__to_cf,
 )
-
-# TODO: Geographic to CF
 
 # Copied from PROJ so we dont have to call it for something so trivial
 const PRIME_MERIDIAN_LONGITUDE = LittleDict(

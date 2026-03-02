@@ -1,9 +1,7 @@
-"""
-This file contains mappings necessary to convert from
-a CRS to a CF-1.8 compliant projection.
-
-http://cfconventions.org/cf-conventions/cf-conventions.html#appendix-grid-mappings
-"""
+# Functions to convert CF grid mapping parameters to ProjJSON and vice versa.
+# CF parameter names and mappings are from CF Conventions Appendix F:
+# http://cfconventions.org/cf-conventions/cf-conventions.html#appendix-grid-mappings
+# Conversion logic derived from pyproj (https://github.com/pyproj4/pyproj).
 
 function _horizontal_datum_from_params(cf_params)
     datum_name = if haskey(cf_params, "horizontal_datum_name")
@@ -12,18 +10,39 @@ function _horizontal_datum_from_params(cf_params)
         datum_name
     end
     # Step 1: build ellipsoid
+    # CF conventions support either:
+    # - earth_radius (spherical Earth)
+    # - semi_major_axis with inverse_flattening or semi_minor_axis (ellipsoidal Earth)
     ellipsoid_name = get(cf_params, "reference_ellipsoid_name", nothing)
-    ellipsoid = if all(k -> haskey(cf_params, k), ("semi_major_axis", "inverse_flattening", "earth_radius"))
+    ellipsoid = if haskey(cf_params, "semi_major_axis")
+        semi_major = cf_params["semi_major_axis"]
+        if haskey(cf_params, "inverse_flattening")
+            InnerDict(
+                "name" => isnothing(ellipsoid_name) ? "undefined" : ellipsoid_name,
+                "semi_major_axis" => semi_major,
+                "inverse_flattening" => cf_params["inverse_flattening"],
+            )
+        elseif haskey(cf_params, "semi_minor_axis")
+            InnerDict(
+                "name" => isnothing(ellipsoid_name) ? "undefined" : ellipsoid_name,
+                "semi_major_axis" => semi_major,
+                "semi_minor_axis" => cf_params["semi_minor_axis"],
+            )
+        else
+            # semi_major_axis alone is not sufficient, fall back to name
+            ellipsoid_name
+        end
+    elseif haskey(cf_params, "earth_radius")
+        # Spherical Earth
+        radius = cf_params["earth_radius"]
         InnerDict(
             "name" => isnothing(ellipsoid_name) ? "undefined" : ellipsoid_name,
-            "semi_major_axis" => cf_params["semi_major_axis"],
-            "semi_minor_axis" => get(cf_params, "semi_minor_axis", 0.0),
-            "inverse_flattening" => cf_params["inverse_flattening"],
-            "radius" => cf_params["earth_radius"],
+            "semi_major_axis" => radius,
+            "semi_minor_axis" => radius,
         )
     else
-        # TODO
-        ellipsoid_name #elipsoid_from_name(ellipsoid_name)
+        # No ellipsoid parameters, use name if available
+        ellipsoid_name
     end
 
     # Step 2: build prime meridian
@@ -170,7 +189,7 @@ function _oblique_mercator(cf_params)
         latitude_projection_centre=cf_params["latitude_of_projection_origin"],
         longitude_projection_centre=cf_params["longitude_of_projection_origin"],
         azimuth_projection_centre=cf_params["azimuth_of_central_line"],
-        angle_from_rectified_to_skew_grid=0.0,
+        angle_from_rectified_to_skew_grid=90.0,
         scale_factor_projection_centre=get(cf_params, "scale_factor_at_projection_origin", 1.0),
         easting_projection_centre=get(cf_params, "false_easting", 0.0),
         northing_projection_centre=get(cf_params, "false_northing", 0.0)
@@ -251,8 +270,8 @@ end
 
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_rotated_pole
 function _rotated_latitude_longitude(cf_params)
-    grid_north_pole_latitude = cf_params["grid_north_pole_latitude"],
-    grid_north_pole_longitude = cf_params["grid_north_pole_longitude"],
+    grid_north_pole_latitude = cf_params["grid_north_pole_latitude"]
+    grid_north_pole_longitude = cf_params["grid_north_pole_longitude"]
     north_pole_grid_longitude = get(cf_params, "north_pole_grid_longitude", 0.0)
     _rotated_latitude_longitude__to_projjson_dict(;
         grid_north_pole_latitude,
@@ -293,8 +312,9 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_geostationary_projection
 function _geostationary__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
+    method_name = lowercase(replace(conversion["method"]["name"], " " => "_"))
     sweep_angle_axis = "y"
-    if endswith(lowercase(conversion.method_name), "(sweep_x)")
+    if endswith(method_name, "(sweep_x)")
         sweep_angle_axis = "x"
     end
     return InnerDict(
@@ -323,7 +343,8 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_lambert_conformal
 function _lambert_conformal_conic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    if endswith(lowercase(conversion.method_name), "(2sp)")
+    method_name = lowercase(conversion["method"]["name"])
+    if endswith(method_name, "(2sp)")
         return InnerDict(
             "grid_mapping_name" => "lambert_conformal_conic",
             "standard_parallel" => (
@@ -361,7 +382,8 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#_mercator
 function _mercator__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    if endswith(lowercase(conversion.method_name), "(variant_a)")
+    method_name = lowercase(replace(conversion["method"]["name"], " " => "_"))
+    if endswith(method_name, "(variant_a)")
         return InnerDict(
             "grid_mapping_name" => "mercator",
             "standard_parallel" => params["latitude_of_natural_origin"],
@@ -424,7 +446,8 @@ end
 # http://cfconventions.org/cf-conventions/cf-conventions.html#polar-stereographic
 function _polar_stereographic__to_cf(conversion::AbstractDict)
     params = _to_dict(conversion)
-    if endswith(lowercase(conversion.method_name), "(variant b)")
+    method_name = lowercase(conversion["method"]["name"])
+    if endswith(method_name, "(variant b)")
         return InnerDict(
             "grid_mapping_name" => "polar_stereographic",
             "standard_parallel" => params["latitude_of_standard_parallel"],
