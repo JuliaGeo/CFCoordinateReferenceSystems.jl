@@ -1,0 +1,10 @@
+[deps]
+CFCoordinateReferenceSystems = "fed75b75-709c-453e-a27b-7a1357b6667b"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GeoFormatTypes = "68eda718-8dee-11e9-39e7-89f7f65f511f"
+Proj = "c94c279d-25a6-4763-9509-64d165bea63e"
+
+[compat]
+Documenter = "1"
+GeoFormatTypes = "0.4"
+Proj = "1.8"

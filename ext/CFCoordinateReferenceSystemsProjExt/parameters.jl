@@ -1,4 +1,6 @@
-# Parameter helpers
+# Parameter helpers for building ProjJSON parameter dictionaries.
+# EPSG codes are from the EPSG Geodetic Parameter Registry (https://epsg.org/).
+# Parameter names and codes derived from pyproj (https://github.com/pyproj4/pyproj).
 
 _colatitude_cone_axis(colatitude_cone_axis) =
     InnerDict(
@@ -167,7 +169,7 @@ _northing_false_origin(value) =
         "id" => InnerDict("authority" => "EPSG", "code" => 8827)
     )
 
-_latitude_standard_paralel(value) =
+_latitude_standard_parallel(value) =
     InnerDict(
         "name" => "Latitude of standard parallel",
         "value" => value,

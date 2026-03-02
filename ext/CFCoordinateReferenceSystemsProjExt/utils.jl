@@ -1,3 +1,7 @@
+# Utility functions and constants for building ProjJSON CRS objects.
+# WGS84 ellipsoid parameters are standard geodetic values (EPSG:7030).
+# Helper functions derived from pyproj (https://github.com/pyproj4/pyproj).
+
 const WGS84DATUM = InnerDict(
     "type" => "GeodeticReferenceFrame",
     "name" => "World Geodetic System 1984",
@@ -9,7 +13,7 @@ const WGS84DATUM = InnerDict(
 )
 
 function _geographic_crs(;
-    name = "WSG 84",
+    name = "WGS 84",
     datum = WGS84DATUM,
 )
     geographic_crs_dict = InnerDict(
@@ -74,13 +78,11 @@ function _prime_meridian(;
 end
 
 function _get_standard_parallels(standard_parallel::String)
-    val_split = split(input_str, ",")
+    val_split = split(standard_parallel, ",")
     if length(val_split) > 1
-        return ntuple(2) do i
-            parse(Float64, strip(val_split[i]))
-        end
+        return (parse(Float64, strip(val_split[1])), parse(Float64, strip(val_split[2])))
     else
-        return parse(Float64, strip(standard_parallel))
+        return (parse(Float64, strip(standard_parallel)), nothing)
     end
 end
 function _get_standard_parallels(standard_parallels::Vector{<:Real})
@@ -88,14 +90,16 @@ function _get_standard_parallels(standard_parallels::Vector{<:Real})
     return Float64(p1), Float64(p2)
 end
 function _get_standard_parallels(standard_parallel::Real)
-    return Float64(standard_parallel), 0.0
+    return (Float64(standard_parallel), nothing)
 end
 
 # Helper function to convert operation parameters to dictionary
-function _to_dict(operation)
+function _to_dict(conversion::AbstractDict)
     param_dict = InnerDict()
-    for param in operation.params
-        param_dict[lowercase(replace(param.name, " " => "_"))] = param.value
+    params = get(conversion, "parameters", [])
+    for param in params
+        name = lowercase(replace(param["name"], " " => "_"))
+        param_dict[name] = param["value"]
     end
     return param_dict
 end

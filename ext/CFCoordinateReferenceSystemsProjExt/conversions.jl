@@ -1,4 +1,6 @@
-# Begin conversion definitions
+# Functions to build ProjJSON conversion dictionaries for each projection method.
+# EPSG method codes (98xx) identify the coordinate operation method.
+# Structure and codes derived from pyproj (https://github.com/pyproj4/pyproj).
 const SCHEMA = "\$schema" => "https://proj.org/schemas/v0.2/projjson.schema.json"
 
 function _albers_equal_area__to_projjson_dict(;
@@ -22,10 +24,6 @@ function _albers_equal_area__to_projjson_dict(;
             _longitude_false_origin(longitude_false_origin),
             _latitude_1st_standard_parallel(latitude_first_parallel),
             _latitude_2nd_standard_parallel(latitude_second_parallel),
-            _easting_false_origin(easting_false_origin),
-            _northing_false_origin(northing_false_origin),
-            # Note: Units dicts were dropped from these entries, and "metre" 
-            # used instead as thats what is used everywhere else.
             _easting_false_origin(easting_false_origin),
             _northing_false_origin(northing_false_origin),
         ]
@@ -141,7 +139,7 @@ function _lambert_conformal_conic_2sp__to_projjson_dict(;
     )
 end
 
-function _lambert_convermal_conic_1sp__to_projjson_dict(;
+function _lambert_conformal_conic_1sp__to_projjson_dict(;
     latitude_natural_origin::Real = 0.0,
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
@@ -360,7 +358,7 @@ function _polar_stereographic_b__to_projjson_dict(;
             "id" => InnerDict("authority" => "EPSG", "code" => 9829)
         ),
         "parameters" => [
-            _latitude_standard_paralel(latitude_standard_parallel),
+            _latitude_standard_parallel(latitude_standard_parallel),
             _longitude_origin(longitude_origin),
             _false_easting(false_easting),
             _false_northing(false_northing),
@@ -368,7 +366,7 @@ function _polar_stereographic_b__to_projjson_dict(;
     )
 end
 
-function _sinosoidal__to_projjson_dict(;
+function _sinusoidal__to_projjson_dict(;
     longitude_natural_origin::Real = 0.0,
     false_easting::Real = 0.0,
     false_northing::Real = 0.0,
@@ -541,59 +539,3 @@ function _rotated_latitude_longitude__to_projjson_dict(;
         ],
     )
 end
-#=
-
-function CassiniSoldnerConversion(;
-    latitude_natural_origin::Real = 0.0,
-    longitude_natural_origin::Real = 0.0,
-    false_easting::Real = 0.0,
-    false_northing::Real = 0.0,
-)
-    InnerDict(
-        SCHEMA,
-        "type" => "Conversion",
-        "name" => "unknown",
-        "method" => InnerDict(
-            "name" => "Cassini-Soldner",
-            "id" => InnerDict("authority" => "EPSG", "code" => 9806)
-        ),
-        "parameters" => [
-            _latitude_natural_origin(latitude_natural_origin),
-            _longitude_natural_origin(longitude_natural_origin),
-            _false_easting(false_easting),
-            _false_northing(false_northing),
-        ]
-    )
-    return CassiniSoldnerConversion(params)
-end
-
-function KrovakConversion(;
-    latitude_projection_centre::Real = 0.0,
-    longitude_origin::Real = 0.0,
-    colatitude_cone_axis::Real = 0.0,
-    latitude_pseudo_standard_parallel::Real = 0.0,
-    scale_factor_pseudo_standard_parallel::Real = 1.0,
-    false_easting::Real = 0.0,
-    false_northing::Real = 0.0,
-)
-    InnerDict(
-        SCHEMA,
-        "type" => "Conversion",
-        "name" => "unknown",
-        "method" => InnerDict(
-            "name" => "Krovak",
-            "id" => InnerDict("authority" => "EPSG", "code" => 9819)
-        ),
-        "parameters" => [
-            _latitude_projection_centre(latitude_projection_centre),
-            _longitude_oriding(longitude_oriding),
-            _colatitude_cone_axis(colatitude_cone_axis), 
-            _latitude_pseudo_standard_parallel(latitude_pseudo_standard_parallel),
-            _scale_factor_pseudo_standard_parallel(scale_factor_pseudo_standard_parallel),
-            _false_easting(false_easting),
-            _false_northing(false_northing),
-        ]
-    )
-    return KrovakConversion(params)
-end
-=#
